@@ -371,8 +371,8 @@ export function QuizProvider({ children }: QuizProviderProps) {
         score: quizResult.score,
         correctAnswers: quizResult.correctAnswers,
         totalQuestions: quizResult.totalQuestions,
-        totalTimeSpent: quizResult.totalTimeSpent,
-        averageTimePerQuestion: quizResult.averageTimePerQuestion,
+        totalTimeSpent: quizResult.totalTimeSpent ?? 0,
+        averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
         completionRhythm
       });
       
