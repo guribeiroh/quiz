@@ -20,7 +20,7 @@ export function Welcome() {
         <div className="flex flex-col items-center mb-6">
           <div className="mb-4">
             <Image 
-              src="/logo-anatomia-sem-medo.png"
+              src="/images/logo-anatomia-sem-medo.png"
               alt="Logo Anatomia Sem Medo"
               width={250}
               height={250}

@@ -7,7 +7,7 @@ export function Footer() {
     <div className="w-full flex justify-center mt-4 mb-2">
       <div className="flex items-center">
         <Image
-          src="/logo-conaes.png"
+          src="/images/logo-conaes.png"
           alt="Logo Conaes"
           width={100}
           height={30}
