@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FaInfoCircle, FaArrowRight, FaTimes, FaClock } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { ProgressBar } from './ProgressBar';
@@ -9,6 +9,16 @@ import { ProgressBar } from './ProgressBar';
 export function Question() {
   const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer, timeRemaining } = useQuiz();
   const [showExplanation, setShowExplanation] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  
+  // Efeito de pulsar quando o tempo estiver acabando
+  useEffect(() => {
+    if (timeRemaining <= 5 && !selectedAnswer) {
+      setIsPulsing(true);
+    } else {
+      setIsPulsing(false);
+    }
+  }, [timeRemaining, selectedAnswer]);
   
   if (!currentQuestion) return null;
   
@@ -18,13 +28,20 @@ export function Question() {
   
   // Calcular cor do timer baseada no tempo restante
   const getTimerColor = () => {
-    if (timeRemaining > 20) return "text-emerald-500";
-    if (timeRemaining > 10) return "text-yellow-500";
-    return "text-red-500";
+    if (timeRemaining > 20) return "emerald";
+    if (timeRemaining > 10) return "yellow";
+    return "red";
   };
   
-  // Calcular largura da barra de tempo
-  const timerWidth = `${(timeRemaining / 30) * 100}%`;
+  // Calcular percentual do tempo
+  const timePercentage = (timeRemaining / 30) * 100;
+  
+  // Calcular o perímetro do círculo
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  
+  // Calcular o valor do stroke-dashoffset para criar o efeito de preenchimento circular
+  const dashOffset = circumference - (timePercentage / 100) * circumference;
   
   const getOptionClassName = (index: number) => {
     const baseClasses = "relative w-full p-4 sm:p-5 mb-3 rounded-lg border-2 text-left transition-all duration-200 flex items-center";
@@ -53,7 +70,7 @@ export function Question() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-6">
           <button 
             onClick={() => nextQuestion(true)} 
             className="font-medium text-gray-300 hover:text-emerald-400 flex items-center text-sm sm:text-base"
@@ -68,25 +85,83 @@ export function Question() {
           </div>
         </div>
         
-        {/* Timer */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center">
-              <FaClock className={`${getTimerColor()} mr-2`} />
-              <span className={`font-medium ${getTimerColor()}`}>{timeRemaining}s</span>
+        {/* Timer elegante */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative flex items-center justify-center">
+            {/* Círculo de fundo */}
+            <div className="w-24 h-24 rounded-full bg-gray-800 shadow-lg border border-gray-700 flex items-center justify-center">
+              {/* Círculo de progresso animado */}
+              <svg className="absolute w-24 h-24" viewBox="0 0 100 100">
+                <circle 
+                  cx="50" 
+                  cy="50" 
+                  r={radius} 
+                  fill="transparent"
+                  stroke={`rgba(${getTimerColor() === 'emerald' ? '16, 185, 129' : 
+                              getTimerColor() === 'yellow' ? '234, 179, 8' : 
+                              '239, 68, 68'}, 0.2)`}
+                  strokeWidth="8"
+                />
+                <motion.circle 
+                  cx="50" 
+                  cy="50" 
+                  r={radius} 
+                  fill="transparent"
+                  stroke={getTimerColor() === 'emerald' ? '#10b981' : 
+                          getTimerColor() === 'yellow' ? '#eab308' : 
+                          '#ef4444'}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  transform="rotate(-90 50 50)"
+                  animate={{ 
+                    strokeDashoffset: dashOffset,
+                    stroke: getTimerColor() === 'emerald' ? '#10b981' : 
+                             getTimerColor() === 'yellow' ? '#eab308' : 
+                             '#ef4444'
+                  }}
+                  transition={{ duration: 1, ease: "easeInOut" }}
+                />
+              </svg>
+              
+              {/* Número do tempo e ícone */}
+              <motion.div 
+                className="flex flex-col items-center justify-center z-10"
+                animate={{ 
+                  scale: isPulsing ? [1, 1.1, 1] : 1,
+                  color: getTimerColor() === 'emerald' ? '#10b981' : 
+                         getTimerColor() === 'yellow' ? '#eab308' : 
+                         '#ef4444'
+                }}
+                transition={{ 
+                  scale: { repeat: Infinity, duration: 0.5 },
+                  color: { duration: 0.3 }
+                }}
+              >
+                <FaClock className="mb-1" />
+                <span className="text-xl font-bold">{timeRemaining}</span>
+              </motion.div>
             </div>
-          </div>
-          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-            <motion.div 
-              className={`h-full ${getTimerColor().replace('text-', 'bg-')}`}
-              initial={{ width: "100%" }}
-              animate={{ width: timerWidth }}
-              transition={{ duration: 0.5 }}
-            />
+            
+            {/* Texto descritivo */}
+            <AnimatePresence>
+              {!isAnswered && timeRemaining <= 10 && (
+                <motion.span 
+                  className="absolute -bottom-7 text-sm font-medium text-center text-red-400"
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  {timeRemaining <= 5 ? "Rápido!" : "Tempo acabando!"}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
         </div>
         
-        <div className="mb-4">
+        {/* Barra de progresso do quiz */}
+        <div className="mb-6">
           <ProgressBar progress={progress} total={questions.length} />
         </div>
         
