@@ -311,11 +311,14 @@ export function QuizProvider({ children }: QuizProviderProps) {
   // Função para enviar os dados para o webhook
   const sendDataToWebhook = async (userData: UserData, quizResult: QuizResult) => {
     try {
-      // Determinar o ritmo de conclusão do quiz
-      let completionRhythm = 'constante';
+      console.log("Tentando enviar dados para webhook e Supabase...");
+      console.log("Dados do usuário:", userData);
+      console.log("Resultados do quiz:", quizResult);
       
-      // Se temos pelo menos 2 respostas com timestamp
+      // Determinar o ritmo de conclusão
+      let completionRhythm = 'constante';
       const answersWithTimestamp = quizResult.answers.filter(a => a.timestamp);
+      
       if (answersWithTimestamp.length >= 2) {
         const sortedAnswers = [...answersWithTimestamp].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         
@@ -365,7 +368,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       });
       
       // 2. Salvar no Supabase
-      await saveQuizResults({
+      console.log("Enviando para o Supabase com os parâmetros:", {
         userName: userData.name,
         userEmail: userData.email,
         score: quizResult.score,
@@ -375,6 +378,19 @@ export function QuizProvider({ children }: QuizProviderProps) {
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
         completionRhythm
       });
+      
+      const supabaseResult = await saveQuizResults({
+        userName: userData.name,
+        userEmail: userData.email,
+        score: quizResult.score,
+        correctAnswers: quizResult.correctAnswers,
+        totalQuestions: quizResult.totalQuestions,
+        totalTimeSpent: quizResult.totalTimeSpent ?? 0,
+        averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
+        completionRhythm
+      });
+      
+      console.log("Resultado do Supabase:", supabaseResult);
       
     } catch (error) {
       console.error('Erro ao enviar dados:', error);

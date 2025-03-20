@@ -20,8 +20,11 @@ type SupabaseMockClient = {
 };
 
 function getSupabaseClient() {
+  console.log("Chamando getSupabaseClient. Ambiente:", typeof window === 'undefined' ? 'servidor' : 'cliente');
+  
   // Se estamos no servidor durante a build estática, retorna um cliente mock
   if (typeof window === 'undefined') {
+    console.log("Ambiente de servidor detectado, retornando cliente mock");
     return {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
@@ -31,17 +34,30 @@ function getSupabaseClient() {
   }
   
   // Se já temos uma instância, reutilizá-la (singleton pattern)
-  if (supabaseInstance) return supabaseInstance;
+  if (supabaseInstance) {
+    console.log("Reutilizando instância existente do Supabase");
+    return supabaseInstance;
+  }
+  
+  console.log("Criando nova instância do Supabase");
   
   // Credenciais do Supabase - em produção, estas devem estar em variáveis de ambiente
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  console.log("Credenciais:", {
+    urlDisponivel: !!supabaseUrl,
+    keyDisponivel: !!supabaseAnonKey,
+    urlTamanho: supabaseUrl.length,
+    keyTamanho: supabaseAnonKey.length
+  });
   
   // Verificar se as credenciais estão disponíveis
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase credentials are missing. Please check your environment variables.');
     
     // Retornar um cliente mock que não faz nada
+    console.log("Retornando cliente mock devido a credenciais ausentes");
     return {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
@@ -50,9 +66,20 @@ function getSupabaseClient() {
     } as SupabaseMockClient;
   }
   
-  // Criar e salvar o cliente Supabase
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  return supabaseInstance;
+  try {
+    // Criar e salvar o cliente Supabase
+    console.log("Criando cliente Supabase com credenciais válidas");
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+    return supabaseInstance;
+  } catch (error) {
+    console.error("Erro ao criar cliente Supabase:", error);
+    return {
+      from: () => ({
+        upsert: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
+        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: { message: "Erro ao criar cliente Supabase" } }) }) }) })
+      })
+    } as SupabaseMockClient;
+  }
 }
 
 // Função para salvar os resultados do quiz
@@ -67,33 +94,53 @@ export async function saveQuizResults(quizData: {
   completionRhythm?: string;
 }) {
   try {
-    const supabase = getSupabaseClient();
+    console.log("Iniciando saveQuizResults no supabase.ts");
     
+    const supabase = getSupabaseClient();
+    console.log("Cliente Supabase inicializado:", !!supabase);
+    
+    // Log da URL do Supabase (sem mostrar a chave por segurança)
+    console.log("URL Supabase:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("Chave Supabase disponível:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    
+    // Dados formatados para inserção
+    const formattedData = {
+      user_name: quizData.userName,
+      user_email: quizData.userEmail,
+      score: quizData.score,
+      correct_answers: quizData.correctAnswers, 
+      total_questions: quizData.totalQuestions,
+      total_time_spent: quizData.totalTimeSpent,
+      average_time_per_question: quizData.averageTimePerQuestion,
+      completion_rhythm: quizData.completionRhythm || 'constante'
+    };
+    
+    console.log("Dados formatados para inserção:", formattedData);
+    
+    console.log("Tentando inserir na tabela quiz_results...");
     const { data, error } = await supabase
       .from('quiz_results')
-      .upsert(
-        {
-          user_name: quizData.userName,
-          user_email: quizData.userEmail,
-          score: quizData.score,
-          correct_answers: quizData.correctAnswers,
-          total_questions: quizData.totalQuestions,
-          total_time_spent: quizData.totalTimeSpent,
-          average_time_per_question: quizData.averageTimePerQuestion,
-          completion_rhythm: quizData.completionRhythm || 'constante'
-        },
-        { onConflict: 'user_email' }
-      )
+      .upsert(formattedData, { onConflict: 'user_email' })
       .select();
 
     if (error) {
-      console.error('Error saving quiz results:', error);
+      console.error('Erro detalhado ao salvar resultados:', error);
+      console.error('Código do erro:', error.code);
+      console.error('Mensagem:', error.message);
+      console.error('Detalhes:', error.details);
       return { success: false, error };
     }
 
+    console.log("Inserção bem-sucedida! Dados retornados:", data);
     return { success: true, data };
   } catch (error) {
-    console.error('Exception saving quiz results:', error);
+    console.error('Exceção ao salvar resultados do quiz:', error);
+    // Se for um erro com propriedades, mostrar detalhes
+    if (error instanceof Error) {
+      console.error('Nome do erro:', error.name);
+      console.error('Mensagem:', error.message);
+      console.error('Stack:', error.stack);
+    }
     return { success: false, error };
   }
 }
