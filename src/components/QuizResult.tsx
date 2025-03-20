@@ -11,11 +11,10 @@ export function QuizResult() {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'resumo' | 'categorias' | 'dicas'>('resumo');
   
-  if (!quizResult || !userData) return null;
-  
-  const correctAnswers = quizResult.correctAnswers;
-  const totalQuestions = quizResult.totalQuestions;
-  const score = quizResult.score;
+  // Valor padrão para quando não há resultado ainda
+  const correctAnswers = quizResult?.correctAnswers ?? 0;
+  const totalQuestions = quizResult?.totalQuestions ?? 0;
+  const score = quizResult?.score ?? 0;
   
   // Cálculos para o gráfico circular
   const circumference = 2 * Math.PI * 45; // 45 é o raio
@@ -23,6 +22,8 @@ export function QuizResult() {
   
   // Categorias simuladas de perguntas (em um app real, essas categorias viriam das próprias perguntas)
   const questionCategories = useMemo(() => {
+    if (!quizResult || !userData) return [];
+    
     const categories = [
       { name: 'Sistema Nervoso', icon: <FaBrain />, color: 'emerald' },
       { name: 'Sistema Cardiovascular', icon: <FaHeartbeat />, color: 'red' },
@@ -49,20 +50,24 @@ export function QuizResult() {
         strength: percentage >= 70
       };
     });
-  }, [questions, quizResult.answers]);
-  
-  // Identificar pontos fortes e fracos
-  const strengths = questionCategories.filter(c => c.percentage >= 70);
-  const weaknesses = questionCategories.filter(c => c.percentage < 70);
+  }, [questions, quizResult, userData]);
   
   // Nível de desempenho
   const performanceLevel = useMemo(() => {
+    if (!quizResult || !userData) return { name: 'Iniciante', stars: 1, description: 'Continue estudando para fortalecer seu conhecimento.' };
+    
     if (score >= 90) return { name: 'Especialista', stars: 5, description: 'Você tem um conhecimento excepcional de anatomia!' };
     if (score >= 80) return { name: 'Avançado', stars: 4, description: 'Seu conhecimento de anatomia é muito bom!' };
     if (score >= 70) return { name: 'Intermediário+', stars: 3, description: 'Você domina bem os conceitos fundamentais.' };
     if (score >= 50) return { name: 'Intermediário', stars: 2, description: 'Você tem uma base sólida, mas ainda precisa praticar mais.' };
     return { name: 'Iniciante', stars: 1, description: 'Continue estudando para fortalecer seu conhecimento.' };
-  }, [score]);
+  }, [score, quizResult, userData]);
+  
+  // Identificar pontos fortes e fracos
+  const strengths = questionCategories.filter(c => c.percentage >= 70);
+  const weaknesses = questionCategories.filter(c => c.percentage < 70);
+  
+  if (!quizResult || !userData) return null;
   
   const getScoreMessage = () => {
     if (score >= 90) return "Excelente! Você demonstra um conhecimento excepcional de anatomia!";
@@ -95,16 +100,6 @@ export function QuizResult() {
       case 'blue': return 'text-blue-500';
       case 'purple': return 'text-purple-500';
       default: return 'text-emerald-500';
-    }
-  };
-  
-  const getCategoryBgClass = (color: string) => {
-    switch (color) {
-      case 'red': return 'bg-red-500';
-      case 'amber': return 'bg-amber-500';
-      case 'blue': return 'bg-blue-500';
-      case 'purple': return 'bg-purple-500';
-      default: return 'bg-emerald-500';
     }
   };
   
@@ -407,8 +402,8 @@ export function QuizResult() {
                     <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-blue-500">
                       <h4 className="font-medium text-white mb-2">Recursos Recomendados</h4>
                       <ul className="space-y-1 text-sm text-gray-300">
-                        <li>• Capítulo 3 do e-book: "Técnicas de Visualização Anatômica"</li>
-                        <li>• Capítulo 5: "Mapas Mentais dos Sistemas Corporais"</li>
+                        <li>• Capítulo 3 do e-book: &quot;Técnicas de Visualização Anatômica&quot;</li>
+                        <li>• Capítulo 5: &quot;Mapas Mentais dos Sistemas Corporais&quot;</li>
                         {weaknesses.map((weakness, i) => (
                           <li key={i}>• Seção especial sobre {weakness.name}</li>
                         ))}
@@ -417,7 +412,7 @@ export function QuizResult() {
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-400 italic">
-                        "A anatomia não é apenas sobre memorização, mas sobre compreender as relações e funções."
+                        &quot;A anatomia não é apenas sobre memorização, mas sobre compreender as relações e funções.&quot;
                       </p>
                     </div>
                   </div>
