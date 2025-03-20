@@ -483,7 +483,7 @@ export function QuizResult() {
                       <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-amber-500">
                         <h4 className="font-medium text-white mb-2">Os 4 Passos para Aprender</h4>
                         <p className="text-sm text-gray-300">
-                          O e-book "Como estudar Anatomia Humana" apresenta um método dividido em 4 etapas essenciais: 
+                          O e-book &quot;Como estudar Anatomia Humana&quot; apresenta um método dividido em 4 etapas essenciais: 
                           Explorar, Estudar, Revisar e Ensinar. Essas etapas trabalham diretamente com a forma como 
                           nossa memória se consolida, transformando exposição inicial em conhecimento de longo prazo.
                         </p>
