@@ -17,7 +17,7 @@ export function Question() {
   const isCorrect = isAnswered && selectedAnswer === currentQuestion.correctAnswer;
   
   const getOptionClassName = (index: number) => {
-    let baseClasses = "relative w-full p-4 sm:p-5 mb-3 rounded-lg border-2 text-left transition-all duration-200 flex items-center";
+    const baseClasses = "relative w-full p-4 sm:p-5 mb-3 rounded-lg border-2 text-left transition-all duration-200 flex items-center";
     
     // Se ainda não respondeu
     if (!isAnswered) {
