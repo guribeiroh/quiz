@@ -481,10 +481,11 @@ export function QuizResult() {
                   <div className="space-y-4">
                     {score < 70 && (
                       <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-amber-500">
-                        <h4 className="font-medium text-white mb-2">Técnicas de Memorização</h4>
+                        <h4 className="font-medium text-white mb-2">Os 4 Passos para Aprender</h4>
                         <p className="text-sm text-gray-300">
-                          Para memorizar melhor os termos anatômicos, experimente usar mnemônicos. 
-                          O e-book contém técnicas específicas para cada sistema do corpo.
+                          O e-book "Como estudar Anatomia Humana" apresenta um método dividido em 4 etapas essenciais: 
+                          Explorar, Estudar, Revisar e Ensinar. Essas etapas trabalham diretamente com a forma como 
+                          nossa memória se consolida, transformando exposição inicial em conhecimento de longo prazo.
                         </p>
                       </div>
                     )}
@@ -492,30 +493,32 @@ export function QuizResult() {
                     <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-emerald-500">
                       <h4 className="font-medium text-white mb-2">Sua Jornada de Aprendizado</h4>
                       <p className="text-sm text-gray-300 mb-3">
-                        Considerando seu desempenho, criamos um plano personalizado:
+                        Considerando seu desempenho, recomendamos este plano baseado no método do e-book:
                       </p>
                       <ol className="space-y-2 list-decimal list-inside text-sm text-gray-300">
-                        <li>Comece estudando os capítulos do e-book relacionados às suas áreas mais fracas.</li>
-                        <li>Dedique 20 minutos diários para revisão dos conteúdos.</li>
-                        <li>Teste seus conhecimentos com questões práticas semanalmente.</li>
-                        <li>Utilize os mapas mentais do e-book para conectar conceitos relacionados.</li>
+                        <li><strong>Explorar</strong>: Tenha o primeiro contato com o conteúdo através de aulas ou leituras iniciais.</li>
+                        <li><strong>Estudar</strong>: Use técnicas como identificação de palavras-chave ou caderno de bullet points.</li>
+                        <li><strong>Revisar</strong>: Realize revisões frequentes dos conceitos destacados.</li>
+                        <li><strong>Ensinar</strong>: Explique o conteúdo para consolidar seu aprendizado.</li>
                       </ol>
                     </div>
                     
                     <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-blue-500">
-                      <h4 className="font-medium text-white mb-2">Recursos Recomendados</h4>
+                      <h4 className="font-medium text-white mb-2">Recursos do E-book</h4>
                       <ul className="space-y-1 text-sm text-gray-300">
-                        <li>• Capítulo 3 do e-book: &quot;Técnicas de Visualização Anatômica&quot;</li>
-                        <li>• Capítulo 5: &quot;Mapas Mentais dos Sistemas Corporais&quot;</li>
+                        <li>• Guia para escolha dos melhores livros-texto e atlas de Anatomia</li>
+                        <li>• Técnicas de memorização e consolidação do conhecimento</li>
+                        <li>• Método para criar cadernos de bullet points eficientes</li>
+                        <li>• Aplicação da técnica Pomodoro para otimizar seu tempo de estudo</li>
                         {weaknesses.map((weakness, i) => (
-                          <li key={i}>• Seção especial sobre {weakness.name}</li>
+                          <li key={i}>• Estratégias específicas para melhorar em {weakness.name}</li>
                         ))}
                       </ul>
                     </div>
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-400 italic">
-                        &quot;A anatomia não é apenas sobre memorização, mas sobre compreender as relações e funções.&quot;
+                        &quot;O conhecimento é o maior bem que você pode adquirir!&quot;
                       </p>
                     </div>
                   </div>
@@ -600,25 +603,25 @@ export function QuizResult() {
             <div className="bg-gray-700/50 p-4 sm:p-6 rounded-xl border border-gray-600 mb-6 sm:mb-8">
               <h3 className="text-lg sm:text-xl font-semibold mb-3 text-emerald-400">Seu E-book está pronto!</h3>
               <p className="text-sm sm:text-base text-gray-300 mb-3 sm:mb-4">
-                Parabéns por completar o quiz! Seu e-book &quot;Guia Definitivo para Estudar Anatomia&quot; 
-                já está disponível para download. Este guia contém:
+                Parabéns por completar o quiz! Seu e-book &quot;Como estudar Anatomia Humana&quot; 
+                já está disponível para download. Este guia exclusivo contém:
               </p>
               <ul className="text-xs sm:text-sm text-gray-300 space-y-2 mb-5 sm:mb-6">
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Técnicas de memorização específicas para anatomia</span>
+                  <span>Os 4 passos essenciais para aprender: Explorar, Estudar, Revisar e Ensinar</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Mapas mentais para sistemas e regiões anatômicas</span>
+                  <span>Guia para escolha entre livros-texto e atlas de Anatomia</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Resumos completos dos principais sistemas</span>
+                  <span>Técnicas de identificação de palavras-chave e caderno de bullet points</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Dicas para se destacar em provas práticas</span>
+                  <span>Método Pomodoro para otimizar seu tempo de estudo</span>
                 </li>
               </ul>
               
