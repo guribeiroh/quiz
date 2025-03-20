@@ -178,9 +178,21 @@ export function QuizResult() {
   };
   
   const handleDownload = () => {
-    // Em uma aplicação real, aqui você poderia abrir uma nova aba com o PDF
-    // ou iniciar o download do arquivo
-    alert("Em uma aplicação real, aqui seria iniciado o download do e-book.");
+    // Criar um link para o arquivo PDF que está na pasta public/ebook
+    const pdfUrl = '/ebook/Anatomia.pdf';
+    
+    // Abrir o arquivo em uma nova aba
+    window.open(pdfUrl, '_blank');
+    
+    // Alternativamente, podemos iniciar o download direto do arquivo
+    /*
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = 'Anatomia.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    */
   };
   
   const toggleAnalysis = () => {
