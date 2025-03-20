@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, 
          FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar } from 'react-icons/fa';
@@ -10,6 +10,11 @@ export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'resumo' | 'categorias' | 'dicas'>('resumo');
+  
+  // Efeito para rolar para o topo da página quando o componente é montado
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   // Valor padrão para quando não há resultado ainda
   const correctAnswers = quizResult?.correctAnswers ?? 0;
