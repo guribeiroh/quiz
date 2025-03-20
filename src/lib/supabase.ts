@@ -1,16 +1,43 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Credenciais do Supabase - em produção, estas devem estar em variáveis de ambiente
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Criamos uma função para inicializar o cliente Supabase (lazy initialization)
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
-// Verificar se as credenciais estão disponíveis
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials are missing. Please check your environment variables.');
+function getSupabaseClient() {
+  // Se estamos no servidor durante a build estática, retorna um cliente mock
+  if (typeof window === 'undefined') {
+    return {
+      from: () => ({
+        upsert: () => ({ select: () => ({ data: null, error: null }) }),
+        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
+      })
+    } as any;
+  }
+  
+  // Se já temos uma instância, reutilizá-la (singleton pattern)
+  if (supabaseInstance) return supabaseInstance;
+  
+  // Credenciais do Supabase - em produção, estas devem estar em variáveis de ambiente
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  // Verificar se as credenciais estão disponíveis
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase credentials are missing. Please check your environment variables.');
+    
+    // Retornar um cliente mock que não faz nada
+    return {
+      from: () => ({
+        upsert: () => ({ select: () => ({ data: null, error: null }) }),
+        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
+      })
+    } as any;
+  }
+  
+  // Criar e salvar o cliente Supabase
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseInstance;
 }
-
-// Criar cliente Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Função para salvar os resultados do quiz
 export async function saveQuizResults(quizData: {
@@ -24,6 +51,8 @@ export async function saveQuizResults(quizData: {
   completionRhythm?: string;
 }) {
   try {
+    const supabase = getSupabaseClient();
+    
     const { data, error } = await supabase
       .from('quiz_results')
       .upsert(
@@ -56,6 +85,8 @@ export async function saveQuizResults(quizData: {
 // Função para obter o ranking
 export async function getQuizRanking(limit = 10) {
   try {
+    const supabase = getSupabaseClient();
+    
     const { data, error } = await supabase
       .from('quiz_results')
       .select('user_name, score, total_time_spent, correct_answers, total_questions')

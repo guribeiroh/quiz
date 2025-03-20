@@ -20,6 +20,11 @@ export function QuizRanking() {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
+    // Garantir que o carregamento dos dados só aconteça no lado do cliente
+    if (typeof window !== 'undefined') {
+      loadRanking();
+    }
+    
     async function loadRanking() {
       try {
         setIsLoading(true);
@@ -37,8 +42,6 @@ export function QuizRanking() {
         setIsLoading(false);
       }
     }
-    
-    loadRanking();
   }, []);
   
   // Formatar tempo (segundos para minutos:segundos)
