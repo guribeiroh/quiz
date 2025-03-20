@@ -115,7 +115,7 @@ export function QuizResult() {
             <div className="bg-gray-700/50 p-6 rounded-xl border border-gray-600 mb-8">
               <h3 className="text-xl font-semibold mb-4 text-emerald-400">Seu E-book está pronto!</h3>
               <p className="text-gray-300 mb-4">
-                Parabéns por completar o quiz! Seu e-book "Guia Definitivo para Estudar Anatomia" 
+                Parabéns por completar o quiz! Seu e-book &quot;Guia Definitivo para Estudar Anatomia&quot; 
                 já está disponível para download. Este guia contém:
               </p>
               <ul className="text-gray-300 space-y-2 mb-6">

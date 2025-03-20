@@ -39,7 +39,7 @@ export function Welcome() {
             </li>
             <li className="flex items-start">
               <span className="bg-emerald-500 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">3</span>
-              <span>Ao final, ganhe um e-book exclusivo "Guia Definitivo para Estudar Anatomia" 📚</span>
+              <span>Ao final, ganhe um e-book exclusivo &quot;Guia Definitivo para Estudar Anatomia&quot; 📚</span>
             </li>
           </ul>
         </div>

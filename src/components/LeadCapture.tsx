@@ -65,7 +65,7 @@ export function LeadCapture() {
               </h3>
               
               <p className="text-gray-300">
-                Preencha o formulário abaixo para receber seu e-book exclusivo "Guia Definitivo para Estudar Anatomia" 
+                Preencha o formulário abaixo para receber seu e-book exclusivo &quot;Guia Definitivo para Estudar Anatomia&quot; 
                 e um relatório detalhado do seu desempenho com dicas personalizadas.
               </p>
             </div>
