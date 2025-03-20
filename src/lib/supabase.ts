@@ -177,7 +177,16 @@ export async function saveQuizResults(quizData: {
     // Definir o tipo para o existingUser para evitar erro de tipagem
     interface QuizResultRecord {
       id: number;
-      [key: string]: any; // Permite outras propriedades
+      user_name?: string;
+      user_email?: string;
+      score?: number;
+      correct_answers?: number;
+      total_questions?: number;
+      total_time_spent?: number;
+      average_time_per_question?: number;
+      completion_rhythm?: string;
+      created_at?: string;
+      updated_at?: string;
     }
 
     if (existingUser && 'id' in existingUser) {
