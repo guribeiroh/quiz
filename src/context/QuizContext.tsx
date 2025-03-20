@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { QuizQuestion, UserAnswer, QuizResult, UserData } from '../types/quiz';
 import { quizQuestions } from '../data/questions';
+import { saveQuizResults } from '../lib/supabase';
 
 interface QuizContextType {
   questions: QuizQuestion[];
@@ -310,36 +311,74 @@ export function QuizProvider({ children }: QuizProviderProps) {
   // Função para enviar os dados para o webhook
   const sendDataToWebhook = async (userData: UserData, quizResult: QuizResult) => {
     try {
-      // Preparar os dados para envio
-      const dataToSend = {
+      // Determinar o ritmo de conclusão do quiz
+      let completionRhythm = 'constante';
+      
+      // Se temos pelo menos 2 respostas com timestamp
+      const answersWithTimestamp = quizResult.answers.filter(a => a.timestamp);
+      if (answersWithTimestamp.length >= 2) {
+        const sortedAnswers = [...answersWithTimestamp].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        
+        const firstHalf = sortedAnswers.slice(0, Math.floor(sortedAnswers.length / 2));
+        const secondHalf = sortedAnswers.slice(Math.floor(sortedAnswers.length / 2));
+        
+        let firstHalfAvgTime = 0;
+        for (let i = 1; i < firstHalf.length; i++) {
+          firstHalfAvgTime += (firstHalf[i].timestamp || 0) - (firstHalf[i-1].timestamp || 0);
+        }
+        firstHalfAvgTime = firstHalfAvgTime / (firstHalf.length - 1 || 1);
+        
+        let secondHalfAvgTime = 0;
+        for (let i = 1; i < secondHalf.length; i++) {
+          secondHalfAvgTime += (secondHalf[i].timestamp || 0) - (secondHalf[i-1].timestamp || 0);
+        }
+        secondHalfAvgTime = secondHalfAvgTime / (secondHalf.length - 1 || 1);
+        
+        const changeFactor = 1.25;
+        if (firstHalfAvgTime > secondHalfAvgTime * changeFactor) {
+          completionRhythm = 'acelerou';
+        } else if (secondHalfAvgTime > firstHalfAvgTime * changeFactor) {
+          completionRhythm = 'desacelerou';
+        }
+      }
+      
+      // 1. Enviar para o webhook conforme antes
+      const payload = {
         userData,
-        quizResult,
-        questions: questions.map(q => ({
-          id: q.id,
-          question: q.question,
-          correctAnswer: q.correctAnswer
-        })),
-        date: new Date().toISOString(),
-        source: window.location.href
+        quizResult: {
+          ...quizResult,
+          answers: quizResult.answers.map(answer => ({
+            questionId: answer.questionId,
+            selectedOption: answer.selectedOption,
+            isCorrect: answer.isCorrect,
+            timeSpent: answer.timeSpent || 0
+          }))
+        }
       };
       
-      // Enviar os dados via fetch
-      const response = await fetch(WEBHOOK_URL, {
+      await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(dataToSend),
+        body: JSON.stringify(payload),
       });
       
-      if (!response.ok) {
-        console.error('Erro ao enviar dados para o webhook:', response.statusText);
-      }
+      // 2. Salvar no Supabase
+      await saveQuizResults({
+        userName: userData.name,
+        userEmail: userData.email,
+        score: quizResult.score,
+        correctAnswers: quizResult.correctAnswers,
+        totalQuestions: quizResult.totalQuestions,
+        totalTimeSpent: quizResult.totalTimeSpent,
+        averageTimePerQuestion: quizResult.averageTimePerQuestion,
+        completionRhythm
+      });
       
-      return response.ok;
     } catch (error) {
-      console.error('Erro ao enviar dados para o webhook:', error);
-      return false;
+      console.error('Erro ao enviar dados:', error);
+      // Não propagar o erro para não bloquear o fluxo do usuário
     }
   };
 
@@ -347,12 +386,14 @@ export function QuizProvider({ children }: QuizProviderProps) {
     setUserData(data);
     setIsLeadCaptured(true);
     
-    // Se tiver resultado do quiz, enviar os dados para o webhook
+    // Se temos resultados, enviar dados para o webhook e Supabase
     if (quizResult) {
       try {
         await sendDataToWebhook(data, quizResult);
       } catch (error) {
-        console.error('Erro ao enviar dados para o webhook:', error);
+        console.error("Erro ao enviar dados para o webhook e Supabase:", error);
+        // Lançar o erro para tratamento no componente
+        throw error;
       }
     }
   };

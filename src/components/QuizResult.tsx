@@ -6,6 +6,7 @@ import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDo
          FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
+import Link from 'next/link';
 
 export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
@@ -651,15 +652,28 @@ export function QuizResult() {
                 </li>
               </ul>
               
-              <motion.button
-                onClick={handleDownload}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center text-sm sm:text-base"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <FaDownload className="mr-2" />
-                Baixar E-book Gratuito
-              </motion.button>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                <motion.button
+                  onClick={handleDownload}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-full text-base md:text-lg flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <FaDownload className="mr-2" />
+                  Baixar E-book Grátis
+                </motion.button>
+                
+                <Link href="/ranking" passHref>
+                  <motion.div
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full text-base md:text-lg flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <FaTrophy className="mr-2 text-yellow-300" />
+                    Ver Ranking
+                  </motion.div>
+                </Link>
+              </div>
             </div>
             
             <div className="text-center">
