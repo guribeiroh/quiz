@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   images: {
     dangerouslyAllowSVG: true,
     domains: ['localhost'],
@@ -9,6 +10,14 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    unoptimized: true,
+  },
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.(pdf)$/i,
+      type: 'asset/resource',
+    });
+    return config;
   },
 };
 

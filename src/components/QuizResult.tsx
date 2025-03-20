@@ -178,21 +178,34 @@ export function QuizResult() {
   };
   
   const handleDownload = () => {
-    // Criar um link para o arquivo PDF que está na pasta public/ebook
-    const pdfUrl = '/ebook/Anatomia.pdf';
-    
-    // Abrir o arquivo em uma nova aba
-    window.open(pdfUrl, '_blank');
-    
-    // Alternativamente, podemos iniciar o download direto do arquivo
-    /*
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = 'Anatomia.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    */
+    try {
+      // Criar um link para o arquivo PDF que está na pasta public/ebook
+      const pdfUrl = '/ebook/Anatomia.pdf';
+      
+      // Tentar abrir o arquivo em uma nova aba
+      const newWindow = window.open(pdfUrl, '_blank');
+      
+      // Se falhar em abrir a nova aba, usar o método de download direto
+      setTimeout(() => {
+        try {
+          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            // Fallback para download direto 
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = 'Anatomia.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+        } catch (error) {
+          console.error('Erro no fallback:', error);
+          alert('Erro ao baixar o PDF. Entre em contato com o suporte.');
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Erro ao baixar o PDF:', error);
+      alert('Erro ao baixar o PDF. Entre em contato com o suporte.');
+    }
   };
   
   const toggleAnalysis = () => {
