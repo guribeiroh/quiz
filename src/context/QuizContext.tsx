@@ -98,6 +98,14 @@ export function QuizProvider({ children }: QuizProviderProps) {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
+      
+      // Se pular a questão, não salva resposta
+      if (skipQuestion && currentQuestion) {
+        // Remove qualquer resposta anterior a esta questão, se existir
+        setUserAnswers(prevAnswers => 
+          prevAnswers.filter(answer => answer.questionId !== currentQuestion.id)
+        );
+      }
     } else {
       // If it's the last question, finish the quiz
       finishQuiz();
