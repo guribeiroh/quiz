@@ -3,6 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 // Criamos uma função para inicializar o cliente Supabase (lazy initialization)
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
+// Definindo um tipo para o cliente mock para evitar o uso de 'any'
+type SupabaseMockClient = {
+  from: (table: string) => {
+    upsert: (data: Record<string, unknown>, options?: Record<string, unknown>) => { 
+      select: () => { data: null | unknown[]; error: null | unknown }
+    };
+    select: (columns?: string) => { 
+      order: (column: string, options?: Record<string, unknown>) => { 
+        order: (column: string, options?: Record<string, unknown>) => {
+          limit: (limit: number) => { data: unknown[]; error: null | unknown }
+        }
+      }
+    };
+  };
+};
+
 function getSupabaseClient() {
   // Se estamos no servidor durante a build estática, retorna um cliente mock
   if (typeof window === 'undefined') {
@@ -11,7 +27,7 @@ function getSupabaseClient() {
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
         select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
       })
-    } as any;
+    } as SupabaseMockClient;
   }
   
   // Se já temos uma instância, reutilizá-la (singleton pattern)
@@ -31,7 +47,7 @@ function getSupabaseClient() {
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
         select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
       })
-    } as any;
+    } as SupabaseMockClient;
   }
   
   // Criar e salvar o cliente Supabase
