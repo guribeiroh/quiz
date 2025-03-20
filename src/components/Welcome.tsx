@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { FaBrain, FaArrowRight } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
@@ -15,7 +16,17 @@ export function Welcome() {
         transition={{ duration: 0.5 }}
         className="text-center w-full max-w-[95%] sm:max-w-2xl"
       >
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col items-center mb-6">
+          <div className="mb-4">
+            <Image 
+              src="/images/logo-anatomia-sem-medo.png"
+              alt="Logo Anatomia Sem Medo"
+              width={200}
+              height={80}
+              className="mx-auto"
+              priority
+            />
+          </div>
           <FaBrain className="text-5xl sm:text-6xl text-emerald-500" />
         </div>
         
@@ -39,7 +50,7 @@ export function Welcome() {
             </li>
             <li className="flex items-start">
               <span className="bg-emerald-500 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">3</span>
-              <span className="text-sm sm:text-base">Ao final, ganhe um e-book exclusivo &quot;Guia Definitivo para Estudar Anatomia&quot; 📚</span>
+              <span className="text-sm sm:text-base">Ao final, ganhe um e-book exclusivo &quot;Como estudar Anatomia Humana&quot; 📚</span>
             </li>
           </ul>
         </div>
