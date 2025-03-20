@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { QuizQuestion, UserAnswer, QuizResult, UserData } from '../types/quiz';
 import { quizQuestions } from '../data/questions';
 
@@ -169,7 +169,31 @@ export function QuizProvider({ children }: QuizProviderProps) {
     setUserAnswers(updatedAnswers);
   };
 
-  const nextQuestion = (skipQuestion: boolean = false) => {
+  const finishQuiz = useCallback(() => {
+    // Parar o timer quando finalizar o quiz
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
+    const answeredQuestions = userAnswers.length;
+    const totalQuestions = questions.length;
+    const wrongAnswers = answeredQuestions - correctAnswers;
+    
+    const result: QuizResult = {
+      totalQuestions,
+      correctAnswers,
+      wrongAnswers,
+      score: (correctAnswers / totalQuestions) * 100,
+      answers: userAnswers
+    };
+
+    setQuizResult(result);
+    setIsQuizFinished(true);
+  }, [questions.length, userAnswers]);
+
+  const nextQuestion = useCallback((skipQuestion: boolean = false) => {
     // Parar o timer atual
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -192,7 +216,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       // If it's the last question, finish the quiz
       finishQuiz();
     }
-  };
+  }, [currentQuestionIndex, questions.length, currentQuestion, finishQuiz]);
 
   const previousQuestion = () => {
     // Parar o timer atual
@@ -211,30 +235,6 @@ export function QuizProvider({ children }: QuizProviderProps) {
       );
       setSelectedAnswer(previousAnswer ? previousAnswer.selectedOption : null);
     }
-  };
-
-  const finishQuiz = () => {
-    // Parar o timer quando finalizar o quiz
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
-    const answeredQuestions = userAnswers.length;
-    const totalQuestions = questions.length;
-    const wrongAnswers = answeredQuestions - correctAnswers;
-    
-    const result: QuizResult = {
-      totalQuestions,
-      correctAnswers,
-      wrongAnswers,
-      score: (correctAnswers / totalQuestions) * 100,
-      answers: userAnswers
-    };
-
-    setQuizResult(result);
-    setIsQuizFinished(true);
   };
 
   const saveUserData = (data: UserData) => {
