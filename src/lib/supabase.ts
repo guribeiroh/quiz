@@ -117,12 +117,47 @@ export async function saveQuizResults(quizData: {
     
     console.log("Dados formatados para inserção:", formattedData);
     
-    console.log("Tentando inserir na tabela quiz_results...");
-    const { data, error } = await supabase
+    // Primeiro, vamos verificar se o usuário já existe
+    console.log("Verificando se o usuário já existe...");
+    const { data: existingUser, error: searchError } = await supabase
       .from('quiz_results')
-      .upsert(formattedData, { onConflict: 'user_email' })
-      .select();
-
+      .select('id')
+      .eq('user_email', quizData.userEmail)
+      .single();
+      
+    if (searchError && searchError.code !== 'PGRST116') { // PGRST116 é o código para "nenhum resultado encontrado"
+      console.error('Erro ao verificar usuário existente:', searchError);
+      
+      // Tratar o erro como PostgrestError para obter acesso às propriedades
+      const pgError = searchError as PostgrestError;
+      console.error('Código do erro:', pgError.code ?? 'N/A');
+      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
+      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
+      
+      return { success: false, error: searchError };
+    }
+    
+    let result;
+    
+    if (existingUser) {
+      console.log("Usuário existente encontrado, atualizando registro...", existingUser);
+      // Atualizar registro existente
+      result = await supabase
+        .from('quiz_results')
+        .update(formattedData)
+        .eq('id', existingUser.id)
+        .select();
+    } else {
+      console.log("Usuário não encontrado, criando novo registro...");
+      // Inserir novo registro
+      result = await supabase
+        .from('quiz_results')
+        .insert(formattedData)
+        .select();
+    }
+    
+    const { data, error } = result;
+    
     if (error) {
       console.error('Erro detalhado ao salvar resultados:', error);
       
@@ -135,7 +170,7 @@ export async function saveQuizResults(quizData: {
       return { success: false, error };
     }
 
-    console.log("Inserção bem-sucedida! Dados retornados:", data);
+    console.log("Operação bem-sucedida! Dados retornados:", data);
     return { success: true, data };
   } catch (error) {
     console.error('Exceção ao salvar resultados do quiz:', error);
