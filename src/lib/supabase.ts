@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, PostgrestError } from '@supabase/supabase-js';
 
 // Criamos uma função para inicializar o cliente Supabase (lazy initialization)
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
@@ -125,9 +125,13 @@ export async function saveQuizResults(quizData: {
 
     if (error) {
       console.error('Erro detalhado ao salvar resultados:', error);
-      console.error('Código do erro:', error.code);
-      console.error('Mensagem:', error.message);
-      console.error('Detalhes:', error.details);
+      
+      // Tratar o erro como PostgrestError para obter acesso às propriedades
+      const pgError = error as PostgrestError;
+      console.error('Código do erro:', pgError.code ?? 'N/A');
+      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
+      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
+      
       return { success: false, error };
     }
 
@@ -148,8 +152,11 @@ export async function saveQuizResults(quizData: {
 // Função para obter o ranking
 export async function getQuizRanking(limit = 10) {
   try {
+    console.log("Iniciando getQuizRanking");
     const supabase = getSupabaseClient();
+    console.log("Cliente Supabase inicializado para ranking:", !!supabase);
     
+    console.log("Buscando ranking com limite:", limit);
     const { data, error } = await supabase
       .from('quiz_results')
       .select('user_name, score, total_time_spent, correct_answers, total_questions')
@@ -158,13 +165,27 @@ export async function getQuizRanking(limit = 10) {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching quiz ranking:', error);
+      console.error('Erro ao buscar ranking:', error);
+      
+      // Tratar o erro como PostgrestError para obter acesso às propriedades
+      const pgError = error as PostgrestError;
+      console.error('Código do erro:', pgError.code ?? 'N/A');
+      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
+      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
+      
       return { success: false, error };
     }
 
+    console.log("Ranking obtido com sucesso! Dados:", data);
     return { success: true, data };
   } catch (error) {
-    console.error('Exception fetching quiz ranking:', error);
+    console.error('Exceção ao buscar ranking:', error);
+    // Se for um erro com propriedades, mostrar detalhes
+    if (error instanceof Error) {
+      console.error('Nome do erro:', error.name);
+      console.error('Mensagem:', error.message);
+      console.error('Stack:', error.stack);
+    }
     return { success: false, error };
   }
 } 
