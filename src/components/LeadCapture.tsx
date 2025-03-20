@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 
 const formSchema = z.object({
@@ -23,16 +24,27 @@ type FormData = z.infer<typeof formSchema>;
 
 export function LeadCapture() {
   const { quizResult, saveUserData } = useQuiz();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       agreedToTerms: false
     }
   });
   
-  const onSubmit = (data: FormData) => {
-    saveUserData(data);
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      await saveUserData(data);
+    } catch (error) {
+      console.error('Erro ao enviar dados:', error);
+      setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
+      setIsSubmitting(false);
+    }
   };
   
   if (!quizResult) return null;
@@ -68,6 +80,12 @@ export function LeadCapture() {
               </p>
             </div>
             
+            {submitError && (
+              <div className="bg-red-900/30 border border-red-800 text-red-200 p-3 rounded-lg mb-4 text-sm">
+                {submitError}
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
               <div>
                 <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="name">
@@ -79,6 +97,7 @@ export function LeadCapture() {
                   className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
                     ${errors.name ? 'border-red-500' : 'border-gray-600'}`}
                   placeholder="Seu nome completo"
+                  disabled={isSubmitting}
                   {...register('name')}
                 />
                 {errors.name && (
@@ -96,6 +115,7 @@ export function LeadCapture() {
                   className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
                     ${errors.email ? 'border-red-500' : 'border-gray-600'}`}
                   placeholder="seu.email@exemplo.com"
+                  disabled={isSubmitting}
                   {...register('email')}
                 />
                 {errors.email && (
@@ -113,6 +133,7 @@ export function LeadCapture() {
                   className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
                     ${errors.phone ? 'border-red-500' : 'border-gray-600'}`}
                   placeholder="(00) 00000-0000"
+                  disabled={isSubmitting}
                   {...register('phone')}
                 />
                 {errors.phone && (
@@ -128,6 +149,7 @@ export function LeadCapture() {
                   id="occupation"
                   className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
                     ${errors.occupation ? 'border-red-500' : 'border-gray-600'}`}
+                  disabled={isSubmitting}
                   {...register('occupation')}
                 >
                   <option value="" disabled selected>Selecione uma opção</option>
@@ -147,6 +169,7 @@ export function LeadCapture() {
                     id="terms"
                     type="checkbox"
                     className="w-5 h-5 accent-emerald-600 rounded bg-gray-700 border-gray-600"
+                    disabled={isSubmitting}
                     {...register('agreedToTerms')}
                   />
                 </div>
@@ -165,11 +188,20 @@ export function LeadCapture() {
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full sm:w-auto px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-full text-sm sm:text-lg shadow-lg disabled:opacity-70 flex items-center justify-center mx-auto"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                  whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
                 >
-                  <FaGraduationCap className="mr-2" />
-                  {isSubmitting ? 'Enviando...' : 'Receber meu e-book gratuito'}
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Enviando dados...
+                    </>
+                  ) : (
+                    <>
+                      <FaGraduationCap className="mr-2" />
+                      Receber meu e-book gratuito
+                    </>
+                  )}
                 </motion.button>
               </div>
             </form>

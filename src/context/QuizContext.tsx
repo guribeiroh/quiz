@@ -22,9 +22,12 @@ interface QuizContextType {
   selectAnswer: (selectedOption: number) => void;
   answerQuestion: (selectedOption: number) => void;
   finishQuiz: () => void;
-  saveUserData: (data: UserData) => void;
+  saveUserData: (data: UserData) => Promise<void>;
   resetQuiz: () => void;
 }
+
+// URL do webhook para envio dos dados
+const WEBHOOK_URL = "https://hook.us1.make.com/x8xbamhov1q9tlyocl2x713kpvpl3wa5";
 
 const QUESTION_TIME_LIMIT = 30; // 30 segundos por pergunta
 
@@ -304,9 +307,54 @@ export function QuizProvider({ children }: QuizProviderProps) {
     }
   };
 
-  const saveUserData = (data: UserData) => {
+  // Função para enviar os dados para o webhook
+  const sendDataToWebhook = async (userData: UserData, quizResult: QuizResult) => {
+    try {
+      // Preparar os dados para envio
+      const dataToSend = {
+        userData,
+        quizResult,
+        questions: questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          correctAnswer: q.correctAnswer
+        })),
+        date: new Date().toISOString(),
+        source: window.location.href
+      };
+      
+      // Enviar os dados via fetch
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+      
+      if (!response.ok) {
+        console.error('Erro ao enviar dados para o webhook:', response.statusText);
+      }
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Erro ao enviar dados para o webhook:', error);
+      return false;
+    }
+  };
+
+  const saveUserData = async (data: UserData) => {
     setUserData(data);
     setIsLeadCaptured(true);
+    
+    // Se tiver resultado do quiz, enviar os dados para o webhook
+    if (quizResult) {
+      try {
+        await sendDataToWebhook(data, quizResult);
+      } catch (error) {
+        console.error('Erro ao enviar dados para o webhook:', error);
+      }
+    }
   };
 
   const resetQuiz = () => {
