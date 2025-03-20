@@ -136,7 +136,13 @@ export async function saveQuizResults(quizData: {
   completionRhythm?: string;
 }) {
   try {
-    console.log("Iniciando saveQuizResults no supabase.ts");
+    console.log("===== INÍCIO DO SAVERESULTS =====");
+    console.log("Iniciando saveQuizResults com dados:", JSON.stringify(quizData));
+    
+    if (!quizData.userEmail) {
+      console.error("Email do usuário não fornecido");
+      return { success: false, error: "Email do usuário é obrigatório" };
+    }
     
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado:", !!supabase);
@@ -157,88 +163,67 @@ export async function saveQuizResults(quizData: {
       completion_rhythm: quizData.completionRhythm || 'constante'
     };
     
-    console.log("Dados formatados para inserção:", formattedData);
+    console.log("Dados formatados para inserção:", JSON.stringify(formattedData));
     
-    // Primeiro, vamos verificar se o usuário já existe
-    console.log("Verificando se o usuário já existe...");
-    const { data: existingUser, error: searchError } = await supabase
+    // Simplificar a abordagem: tentar inserir diretamente
+    // Se o registro com o mesmo email já existir, Supabase retornará um erro
+    const { data, error } = await supabase
       .from('quiz_results')
-      .select('id')
-      .eq('user_email', quizData.userEmail)
-      .single();
-      
-    if (searchError) {
-      // Tratar o erro como PostgrestError para obter acesso às propriedades
-      const pgError = searchError as PostgrestError;
-      
-      // PGRST116 é o código para "nenhum resultado encontrado"
-      if (pgError.code !== 'PGRST116') {
-        console.error('Erro ao verificar usuário existente:', searchError);
-        console.error('Código do erro:', pgError.code ?? 'N/A');
-        console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
-        console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
-        
-        return { success: false, error: searchError };
-      } else {
-        console.log("Usuário não encontrado (PGRST116), continuando com inserção...");
-      }
-    }
+      .insert(formattedData)
+      .select();
     
-    let result;
-    
-    // Definir o tipo para o existingUser para evitar erro de tipagem
-    interface QuizResultRecord {
-      id: number;
-      user_name?: string;
-      user_email?: string;
-      score?: number;
-      correct_answers?: number;
-      total_questions?: number;
-      total_time_spent?: number;
-      average_time_per_question?: number;
-      completion_rhythm?: string;
-      created_at?: string;
-      updated_at?: string;
-    }
-
-    // Verificação de tipo mais segura
-    const userExists = existingUser !== null && 
-                      existingUser !== undefined && 
-                      typeof existingUser === 'object' && 
-                      Object.prototype.hasOwnProperty.call(existingUser, 'id');
-
-    if (userExists) {
-      console.log("Usuário existente encontrado, atualizando registro...", existingUser);
-      // Atualizar registro existente
-      result = await supabase
-        .from('quiz_results')
-        .update(formattedData)
-        .eq('id', (existingUser as QuizResultRecord).id)
-        .select();
-    } else {
-      console.log("Usuário não encontrado, criando novo registro...");
-      // Inserir novo registro
-      result = await supabase
-        .from('quiz_results')
-        .insert(formattedData)
-        .select();
-    }
-    
-    const { data, error } = result;
+    console.log("Resultado da operação de insert:", { data, error });
     
     if (error) {
+      // Se o erro for de conflito/duplicado, tente atualizar em vez de inserir
+      if (error.code === '23505') { // Código para violação de restrição única
+        console.log("Registro duplicado detectado, tentando atualizar...");
+        
+        // Buscar o ID existente primeiro
+        const { data: existingUser, error: searchError } = await supabase
+          .from('quiz_results')
+          .select('id')
+          .eq('user_email', quizData.userEmail)
+          .single();
+        
+        console.log("Busca por usuário existente:", { existingUser, searchError });
+        
+        if (searchError || !existingUser) {
+          console.error("Erro ao buscar usuário existente:", searchError);
+          return { success: false, error: searchError || "Usuário não encontrado" };
+        }
+        
+        // Atualizar o registro existente
+        const updateResult = await supabase
+          .from('quiz_results')
+          .update(formattedData)
+          .eq('id', existingUser.id)
+          .select();
+        
+        console.log("Resultado da operação de update:", updateResult);
+        
+        if (updateResult.error) {
+          console.error("Erro ao atualizar registro:", updateResult.error);
+          return { success: false, error: updateResult.error };
+        }
+        
+        console.log("Registro atualizado com sucesso:", updateResult.data);
+        console.log("===== FIM DO SAVERESULTS =====");
+        return { success: true, data: updateResult.data };
+      }
+      
+      // Para outros erros
       console.error('Erro detalhado ao salvar resultados:', error);
+      console.error('Código do erro:', error.code || 'N/A');
+      console.error('Mensagem:', error.message || 'Sem mensagem');
+      console.error('Detalhes:', error.details || 'Sem detalhes');
       
-      // Tratar o erro como PostgrestError para obter acesso às propriedades
-      const pgError = error as PostgrestError;
-      console.error('Código do erro:', pgError.code ?? 'N/A');
-      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
-      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
-      
+      console.log("===== FIM DO SAVERESULTS COM ERRO =====");
       return { success: false, error };
     }
 
     console.log("Operação bem-sucedida! Dados retornados:", data);
+    console.log("===== FIM DO SAVERESULTS =====");
     return { success: true, data };
   } catch (error) {
     console.error('Exceção ao salvar resultados do quiz:', error);
@@ -248,6 +233,7 @@ export async function saveQuizResults(quizData: {
       console.error('Mensagem:', error.message);
       console.error('Stack:', error.stack);
     }
+    console.log("===== FIM DO SAVERESULTS COM ERRO =====");
     return { success: false, error };
   }
 }
