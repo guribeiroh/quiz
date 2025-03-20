@@ -10,9 +10,10 @@ import { useQuiz } from '../context/QuizContext';
 const formSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
-  phone: z.string().optional(),
-  college: z.string().optional(),
-  semester: z.string().optional(),
+  phone: z.string().min(1, 'Telefone é obrigatório'),
+  occupation: z.enum(['estudante_medicina', 'estudante_saude', 'profissional_saude', 'medico'], {
+    errorMap: () => ({ message: 'Selecione uma opção' })
+  }),
   agreedToTerms: z.boolean().refine(val => val === true, {
     message: 'Você precisa concordar com os termos'
   })
@@ -107,43 +108,40 @@ export function LeadCapture() {
               
               <div>
                 <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="phone">
-                  Telefone (opcional)
+                  Telefone*
                 </label>
                 <input
                   id="phone"
                   type="tel"
-                  className="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
+                    ${errors.phone ? 'border-red-500' : 'border-gray-600'}`}
                   placeholder="(00) 00000-0000"
                   {...register('phone')}
                 />
+                {errors.phone && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.phone.message}</p>
+                )}
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="college">
-                    Faculdade/Universidade (opcional)
-                  </label>
-                  <input
-                    id="college"
-                    type="text"
-                    className="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base"
-                    placeholder="Nome da instituição"
-                    {...register('college')}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="semester">
-                    Período/Semestre (opcional)
-                  </label>
-                  <input
-                    id="semester"
-                    type="text"
-                    className="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base"
-                    placeholder="Ex: 3º semestre"
-                    {...register('semester')}
-                  />
-                </div>
+              <div>
+                <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="occupation">
+                  Profissão/Ocupação*
+                </label>
+                <select
+                  id="occupation"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base
+                    ${errors.occupation ? 'border-red-500' : 'border-gray-600'}`}
+                  {...register('occupation')}
+                >
+                  <option value="" disabled selected>Selecione uma opção</option>
+                  <option value="estudante_medicina">Estudante de Medicina</option>
+                  <option value="estudante_saude">Estudante Área da Saúde</option>
+                  <option value="profissional_saude">Profissional da Saúde</option>
+                  <option value="medico">Médico(a)</option>
+                </select>
+                {errors.occupation && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.occupation.message}</p>
+                )}
               </div>
               
               <div className="flex items-start mt-4 sm:mt-6">
