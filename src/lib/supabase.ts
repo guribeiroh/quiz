@@ -7,24 +7,22 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null;
 type SupabaseMockClient = {
   from: (table: string) => {
     upsert: (data: Record<string, unknown>, options?: Record<string, unknown>) => { 
-      select: () => { data: null | unknown[]; error: null | unknown }
+      select: () => { data: null | unknown[]; error: null | PostgrestError }
     };
     insert: (data: Record<string, unknown>) => {
-      select: () => { data: null | unknown[]; error: null | unknown }
+      select: () => { data: null | unknown[]; error: null | PostgrestError }
     };
     update: (data: Record<string, unknown>) => {
       eq: (column: string, value: unknown) => {
-        select: () => { data: null | unknown[]; error: null | unknown }
+        select: () => { data: null | unknown[]; error: null | PostgrestError }
       }
     };
     select: (columns?: string) => { 
       eq: (column: string, value: unknown) => {
-        single: () => { data: null | unknown; error: null | unknown }
+        single: () => { data: null | unknown; error: null | PostgrestError }
       };
       order: (column: string, options?: Record<string, unknown>) => { 
-        order: (column: string, options?: Record<string, unknown>) => {
-          limit: (limit: number) => { data: unknown[]; error: null | unknown }
-        }
+        limit: (limit: number) => { data: unknown[]; error: null | PostgrestError }
       }
     };
   };
@@ -43,7 +41,7 @@ function getSupabaseClient() {
         update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
-          order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) })
+          order: () => ({ limit: () => ({ data: [], error: null }) })
         })
       })
     } as SupabaseMockClient;
@@ -81,7 +79,7 @@ function getSupabaseClient() {
         update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
-          order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) })
+          order: () => ({ limit: () => ({ data: [], error: null }) })
         })
       })
     } as SupabaseMockClient;
@@ -94,14 +92,20 @@ function getSupabaseClient() {
     return supabaseInstance;
   } catch (error) {
     console.error("Erro ao criar cliente Supabase:", error);
+    const mockError = {
+      message: "Erro ao criar cliente Supabase",
+      code: "MOCK_ERROR",
+      details: "Erro na criação do cliente"
+    } as PostgrestError;
+    
     return {
       from: () => ({
-        upsert: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
-        insert: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
-        update: () => ({ eq: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }) }),
+        upsert: () => ({ select: () => ({ data: null, error: mockError }) }),
+        insert: () => ({ select: () => ({ data: null, error: mockError }) }),
+        update: () => ({ eq: () => ({ select: () => ({ data: null, error: mockError }) }) }),
         select: () => ({ 
-          eq: () => ({ single: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
-          order: () => ({ order: () => ({ limit: () => ({ data: [], error: { message: "Erro ao criar cliente Supabase" } }) }) })
+          eq: () => ({ single: () => ({ data: null, error: mockError }) }),
+          order: () => ({ limit: () => ({ data: [], error: mockError }) })
         })
       })
     } as SupabaseMockClient;
@@ -151,16 +155,21 @@ export async function saveQuizResults(quizData: {
       .eq('user_email', quizData.userEmail)
       .single();
       
-    if (searchError && searchError.code !== 'PGRST116') { // PGRST116 é o código para "nenhum resultado encontrado"
-      console.error('Erro ao verificar usuário existente:', searchError);
-      
+    if (searchError) {
       // Tratar o erro como PostgrestError para obter acesso às propriedades
       const pgError = searchError as PostgrestError;
-      console.error('Código do erro:', pgError.code ?? 'N/A');
-      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
-      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
       
-      return { success: false, error: searchError };
+      // PGRST116 é o código para "nenhum resultado encontrado"
+      if (pgError.code !== 'PGRST116') {
+        console.error('Erro ao verificar usuário existente:', searchError);
+        console.error('Código do erro:', pgError.code ?? 'N/A');
+        console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
+        console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
+        
+        return { success: false, error: searchError };
+      } else {
+        console.log("Usuário não encontrado (PGRST116), continuando com inserção...");
+      }
     }
     
     let result;
