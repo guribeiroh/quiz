@@ -12,6 +12,8 @@ export interface UserAnswer {
   questionId: number;
   selectedOption: number;
   isCorrect: boolean;
+  timeSpent?: number;
+  timestamp?: number;
 }
 
 export interface QuizResult {
@@ -20,6 +22,10 @@ export interface QuizResult {
   wrongAnswers: number;
   score: number;
   answers: UserAnswer[];
+  totalTimeSpent?: number;
+  startTime?: number;
+  endTime?: number;
+  averageTimePerQuestion?: number;
 }
 
 export interface UserData {

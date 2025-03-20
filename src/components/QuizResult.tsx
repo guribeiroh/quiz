@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, 
-         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar } from 'react-icons/fa';
+         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 
 export function QuizResult() {
@@ -21,9 +21,74 @@ export function QuizResult() {
   const totalQuestions = quizResult?.totalQuestions ?? 0;
   const score = quizResult?.score ?? 0;
   
+  // Valores de tempo do quiz
+  const totalTimeSpent = quizResult?.totalTimeSpent ?? 0;
+  const averageTimePerQuestion = quizResult?.averageTimePerQuestion ?? 0;
+  
   // Cálculos para o gráfico circular
   const circumference = 2 * Math.PI * 45; // 45 é o raio
   const strokeDashoffset = circumference - (score / 100) * circumference;
+  
+  // Função para formatar o tempo em minutos e segundos
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins > 0 ? `${mins}min ` : ''}${secs}seg`;
+  };
+  
+  // Análise do ritmo de resposta
+  const getResponseRateAnalysis = useMemo(() => {
+    if (!quizResult?.answers || quizResult.answers.length === 0) return null;
+    
+    // Ordenar as respostas por timestamp (do mais antigo para o mais recente)
+    const sortedAnswers = [...quizResult.answers]
+      .filter(a => a.timestamp)
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    
+    if (sortedAnswers.length < 2) return null;
+    
+    // Calcular a média de tempo entre as respostas
+    let totalTimeBetweenAnswers = 0;
+    for (let i = 1; i < sortedAnswers.length; i++) {
+      totalTimeBetweenAnswers += ((sortedAnswers[i].timestamp || 0) - (sortedAnswers[i-1].timestamp || 0)) / 1000;
+    }
+    
+    const avgTimeBetweenAnswers = totalTimeBetweenAnswers / (sortedAnswers.length - 1);
+    
+    // Analisar se o ritmo foi constante ou mudou ao longo do quiz
+    const firstHalfAnswers = sortedAnswers.slice(0, Math.ceil(sortedAnswers.length / 2));
+    const secondHalfAnswers = sortedAnswers.slice(Math.ceil(sortedAnswers.length / 2));
+    
+    let firstHalfTimeBetween = 0;
+    for (let i = 1; i < firstHalfAnswers.length; i++) {
+      firstHalfTimeBetween += ((firstHalfAnswers[i].timestamp || 0) - (firstHalfAnswers[i-1].timestamp || 0)) / 1000;
+    }
+    
+    let secondHalfTimeBetween = 0;
+    for (let i = 1; i < secondHalfAnswers.length; i++) {
+      secondHalfTimeBetween += ((secondHalfAnswers[i].timestamp || 0) - (secondHalfAnswers[i-1].timestamp || 0)) / 1000;
+    }
+    
+    const firstHalfAvg = firstHalfTimeBetween / (firstHalfAnswers.length - 1 || 1);
+    const secondHalfAvg = secondHalfTimeBetween / (secondHalfAnswers.length - 1 || 1);
+    
+    // Determinar se o usuário acelerou, desacelerou ou manteve ritmo constante
+    let trend: 'acelerou' | 'desacelerou' | 'constante' = 'constante';
+    const changeFactor = 1.25; // Fator para considerar uma mudança significativa no ritmo
+    
+    if (firstHalfAvg > secondHalfAvg * changeFactor) {
+      trend = 'acelerou';
+    } else if (secondHalfAvg > firstHalfAvg * changeFactor) {
+      trend = 'desacelerou';
+    }
+    
+    return {
+      averageTimeBetweenAnswers: avgTimeBetweenAnswers,
+      trend,
+      firstHalfAvg,
+      secondHalfAvg
+    };
+  }, [quizResult]);
   
   // Categorias simuladas de perguntas (em um app real, essas categorias viriam das próprias perguntas)
   const questionCategories = useMemo(() => {
@@ -86,6 +151,29 @@ export function QuizResult() {
     if (score >= 70) return "text-emerald-500";
     if (score >= 50) return "text-yellow-500";
     return "text-red-500";
+  };
+  
+  const getRhythmIcon = () => {
+    if (!getResponseRateAnalysis) return <FaClock />;
+    
+    switch (getResponseRateAnalysis.trend) {
+      case 'acelerou': return <FaBolt className="text-yellow-400" />;
+      case 'desacelerou': return <FaClock className="text-blue-400" />;
+      default: return <FaRunning className="text-emerald-400" />;
+    }
+  };
+  
+  const getRhythmMessage = () => {
+    if (!getResponseRateAnalysis) return "Tempo médio consistente por questão";
+    
+    switch (getResponseRateAnalysis.trend) {
+      case 'acelerou': 
+        return "Você acelerou o ritmo de respostas ao longo do quiz";
+      case 'desacelerou': 
+        return "Você diminuiu o ritmo nas últimas questões";
+      default: 
+        return "Você manteve um ritmo constante durante todo o quiz";
+    }
   };
   
   const handleDownload = () => {
@@ -295,8 +383,18 @@ export function QuizResult() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-gray-700 rounded-lg p-4">
                         <h5 className="text-sm font-medium text-emerald-400 mb-2">Ritmo de conclusão</h5>
-                        <p className="text-white text-lg font-bold">{Math.round(totalQuestions / 2)} min</p>
-                        <p className="text-xs text-gray-400">Tempo médio por questão: {Math.round(totalQuestions / 2 * 60 / totalQuestions)} seg</p>
+                        <div className="flex items-center">
+                          {getRhythmIcon()}
+                          <p className="text-white text-lg font-bold ml-2">
+                            {formatTime(totalTimeSpent)}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Tempo médio por questão: {formatTime(averageTimePerQuestion)}
+                        </p>
+                        {getResponseRateAnalysis && (
+                          <p className="text-xs text-gray-400 mt-1">{getRhythmMessage()}</p>
+                        )}
                       </div>
                       
                       <div className="bg-gray-700 rounded-lg p-4">
@@ -478,6 +576,12 @@ export function QuizResult() {
                                     <p className="text-emerald-400 mt-1">
                                       <span className="font-medium">Resposta correta:</span>{' '}
                                       {question.options[question.correctAnswer]}
+                                    </p>
+                                  )}
+                                  {userAnswer?.timeSpent !== undefined && (
+                                    <p className="text-gray-400 mt-1 text-xs">
+                                      <FaClock className="inline mr-1" /> 
+                                      Tempo: {formatTime(userAnswer.timeSpent)}
                                     </p>
                                   )}
                                 </div>

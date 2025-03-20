@@ -57,6 +57,10 @@ export function QuizProvider({ children }: QuizProviderProps) {
   // Ref para o timer
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Ref para registrar o tempo de início do quiz e de cada questão
+  const quizStartTimeRef = useRef<number>(0);
+  const questionStartTimeRef = useRef<number>(0);
+  
   // Referência para funções para evitar dependências circulares
   const nextQuestionRef = useRef<((skipQuestion?: boolean) => void) | null>(null);
   
@@ -73,17 +77,30 @@ export function QuizProvider({ children }: QuizProviderProps) {
       timerRef.current = null;
     }
     
+    const endTime = Date.now();
     const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
     const answeredQuestions = userAnswers.length;
     const totalQuestions = questions.length;
     const wrongAnswers = answeredQuestions - correctAnswers;
+    
+    // Calcular o tempo total gasto
+    const totalTimeSpent = Math.round((endTime - quizStartTimeRef.current) / 1000);
+    
+    // Calcular o tempo médio por questão
+    const averageTimePerQuestion = answeredQuestions > 0 
+      ? Math.round(totalTimeSpent / answeredQuestions) 
+      : 0;
     
     const result: QuizResult = {
       totalQuestions,
       correctAnswers,
       wrongAnswers,
       score: (correctAnswers / totalQuestions) * 100,
-      answers: userAnswers
+      answers: userAnswers,
+      totalTimeSpent,
+      startTime: quizStartTimeRef.current,
+      endTime,
+      averageTimePerQuestion
     };
 
     setQuizResult(result);
@@ -98,10 +115,17 @@ export function QuizProvider({ children }: QuizProviderProps) {
       timerRef.current = null;
     }
     
+    // Calcular o tempo gasto nesta questão
+    const now = Date.now();
+    const timeSpent = Math.round((now - questionStartTimeRef.current) / 1000);
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setTimeRemaining(QUESTION_TIME_LIMIT);
+      
+      // Atualizar o tempo de início da próxima questão
+      questionStartTimeRef.current = now;
       
       // Se pular a questão, não salva resposta
       if (skipQuestion && currentQuestion) {
@@ -109,9 +133,29 @@ export function QuizProvider({ children }: QuizProviderProps) {
         setUserAnswers(prevAnswers => 
           prevAnswers.filter(answer => answer.questionId !== currentQuestion.id)
         );
+      } else if (currentQuestion && !skipQuestion) {
+        // Se não pulou e tem uma resposta selecionada, atualiza o tempo gasto
+        setUserAnswers(prevAnswers => 
+          prevAnswers.map(answer => 
+            answer.questionId === currentQuestion.id 
+              ? { ...answer, timeSpent, timestamp: now } 
+              : answer
+          )
+        );
       }
     } else {
-      // If it's the last question, finish the quiz
+      // Se for a última questão, atualiza o tempo gasto e finaliza o quiz
+      if (currentQuestion && !skipQuestion) {
+        setUserAnswers(prevAnswers => 
+          prevAnswers.map(answer => 
+            answer.questionId === currentQuestion.id 
+              ? { ...answer, timeSpent, timestamp: now } 
+              : answer
+          )
+        );
+      }
+      
+      // Finaliza o quiz
       finishQuiz();
     }
   }, [currentQuestionIndex, questions.length, currentQuestion, finishQuiz]);
@@ -183,6 +227,10 @@ export function QuizProvider({ children }: QuizProviderProps) {
   }, [selectedAnswer]);
 
   const startQuiz = () => {
+    // Registrar o tempo de início do quiz
+    quizStartTimeRef.current = Date.now();
+    questionStartTimeRef.current = Date.now();
+    
     setIsQuizStarted(true);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
@@ -207,10 +255,16 @@ export function QuizProvider({ children }: QuizProviderProps) {
   const answerQuestion = (selectedOption: number) => {
     if (!currentQuestion) return;
     
+    // Calcular o tempo gasto nesta questão
+    const now = Date.now();
+    const timeSpent = Math.round((now - questionStartTimeRef.current) / 1000);
+    
     const answer: UserAnswer = {
       questionId: currentQuestion.id,
       selectedOption,
-      isCorrect: selectedOption === currentQuestion.correctAnswer
+      isCorrect: selectedOption === currentQuestion.correctAnswer,
+      timeSpent,
+      timestamp: now
     };
 
     // Update or add the answer
@@ -239,6 +293,9 @@ export function QuizProvider({ children }: QuizProviderProps) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
       setTimeRemaining(QUESTION_TIME_LIMIT);
       
+      // Atualizar o tempo de início ao voltar para a questão anterior
+      questionStartTimeRef.current = Date.now();
+      
       // Set the selected answer to what the user previously chose
       const previousAnswer = userAnswers.find(
         a => a.questionId === questions[currentQuestionIndex - 1].id
@@ -250,50 +307,48 @@ export function QuizProvider({ children }: QuizProviderProps) {
   const saveUserData = (data: UserData) => {
     setUserData(data);
     setIsLeadCaptured(true);
-    
-    // Aqui você poderia enviar os dados para uma API/backend
-    console.log('Lead capturado:', data);
   };
 
   const resetQuiz = () => {
-    // Parar o timer ao resetar o quiz
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
     setIsQuizStarted(false);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
     setQuizResult(null);
     setIsQuizFinished(false);
-    setUserData(null);
     setIsLeadCaptured(false);
     setSelectedAnswer(null);
     setTimeRemaining(QUESTION_TIME_LIMIT);
+    
+    // Resetar os tempos
+    quizStartTimeRef.current = 0;
+    questionStartTimeRef.current = 0;
   };
 
-  const value = {
-    questions,
-    currentQuestionIndex,
-    currentQuestion,
-    selectedAnswer,
-    userAnswers,
-    quizResult,
-    userData,
-    isQuizStarted,
-    isQuizFinished,
-    isLeadCaptured,
-    timeRemaining,
-    startQuiz,
-    nextQuestion,
-    previousQuestion,
-    selectAnswer,
-    answerQuestion,
-    finishQuiz,
-    saveUserData,
-    resetQuiz
-  };
-
-  return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
+  return (
+    <QuizContext.Provider
+      value={{
+        questions,
+        currentQuestionIndex,
+        currentQuestion,
+        selectedAnswer,
+        userAnswers,
+        quizResult,
+        userData,
+        isQuizStarted,
+        isQuizFinished,
+        isLeadCaptured,
+        timeRemaining,
+        startQuiz,
+        nextQuestion,
+        previousQuestion,
+        selectAnswer,
+        answerQuestion,
+        finishQuiz,
+        saveUserData,
+        resetQuiz
+      }}
+    >
+      {children}
+    </QuizContext.Provider>
+  );
 } 
