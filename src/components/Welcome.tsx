@@ -19,15 +19,14 @@ export function Welcome() {
         <div className="flex flex-col items-center mb-6">
           <div className="mb-4">
             <Image 
-              src="/images/logo-anatomia-sem-medo.png"
+              src="/logo-anatomia-sem-medo.png"
               alt="Logo Anatomia Sem Medo"
-              width={200}
-              height={80}
+              width={250}
+              height={250}
               className="mx-auto"
               priority
             />
           </div>
-          <FaBrain className="text-5xl sm:text-6xl text-emerald-500" />
         </div>
         
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 px-2">Quiz Anatomia Sem Medo</h1>
