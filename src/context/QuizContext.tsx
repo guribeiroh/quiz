@@ -113,7 +113,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
         clearInterval(timerRef.current);
       }
     };
-  }, [currentQuestionIndex, isQuizStarted, isQuizFinished]);
+  }, [currentQuestionIndex, isQuizStarted, isQuizFinished, nextQuestion, selectedAnswer]);
   
   // Parar o timer quando uma resposta for selecionada
   useEffect(() => {
