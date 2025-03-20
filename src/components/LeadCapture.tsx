@@ -37,8 +37,6 @@ export function LeadCapture() {
   
   if (!quizResult) return null;
   
-  const scorePercentage = quizResult.score;
-  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
       <div className="max-w-3xl mx-auto">
@@ -50,7 +48,6 @@ export function LeadCapture() {
         >
           <div className="bg-emerald-700 p-4 sm:p-6 text-white text-center">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3">Parabéns! Você concluiu o quiz!</h2>
-            <p className="text-lg sm:text-xl">Sua pontuação: {scorePercentage.toFixed(0)}%</p>
           </div>
           
           <div className="p-5 sm:p-8">

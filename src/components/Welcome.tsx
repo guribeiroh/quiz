@@ -51,12 +51,12 @@ export function Welcome() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        Começar o Desafio
+        Começar
         <FaArrowRight className="ml-2" />
       </motion.button>
       
       <p className="mt-8 text-gray-400 text-sm px-4 text-center">
-        Mais de 1.000 estudantes já testaram seus conhecimentos!
+        Centenas de estudantes já testaram seus conhecimentos!
       </p>
     </div>
   );
