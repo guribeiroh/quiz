@@ -174,13 +174,19 @@ export async function saveQuizResults(quizData: {
     
     let result;
     
-    if (existingUser) {
+    // Definir o tipo para o existingUser para evitar erro de tipagem
+    interface QuizResultRecord {
+      id: number;
+      [key: string]: any; // Permite outras propriedades
+    }
+
+    if (existingUser && 'id' in existingUser) {
       console.log("Usuário existente encontrado, atualizando registro...", existingUser);
       // Atualizar registro existente
       result = await supabase
         .from('quiz_results')
         .update(formattedData)
-        .eq('id', existingUser.id)
+        .eq('id', (existingUser as QuizResultRecord).id)
         .select();
     } else {
       console.log("Usuário não encontrado, criando novo registro...");
