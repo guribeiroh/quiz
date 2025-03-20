@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, 
          FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
+import { Footer } from './Footer';
 
 export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
@@ -650,6 +651,8 @@ export function QuizResult() {
           </div>
         </motion.div>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { FaArrowRight } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
+import { Footer } from './Footer';
 
 export function Welcome() {
   const { startQuiz } = useQuiz();
@@ -68,6 +69,8 @@ export function Welcome() {
       <p className="mt-8 text-gray-400 text-sm px-4 text-center">
         Centenas de estudantes já testaram seus conhecimentos!
       </p>
+      
+      <Footer />
     </div>
   );
 } 

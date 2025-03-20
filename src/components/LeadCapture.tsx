@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
+import { Footer } from './Footer';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -216,6 +217,8 @@ export function LeadCapture() {
           </div>
         </motion.div>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

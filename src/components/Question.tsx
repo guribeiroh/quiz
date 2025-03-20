@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaInfoCircle, FaArrowRight, FaTimes, FaClock } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { ProgressBar } from './ProgressBar';
+import { Footer } from './Footer';
 
 export function Question() {
   const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer, timeRemaining } = useQuiz();
@@ -258,6 +259,8 @@ export function Question() {
           Responda todas as questões para receber seu e-book gratuito!
         </p>
       </div>
+      
+      <Footer />
     </div>
   );
 } 
