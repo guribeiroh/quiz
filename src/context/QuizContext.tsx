@@ -58,7 +58,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Referência para funções para evitar dependências circulares
-  const nextQuestionRef = useRef<(skipQuestion?: boolean) => void>();
+  const nextQuestionRef = useRef<((skipQuestion?: boolean) => void) | null>(null);
   
   // Computed property for current question
   const currentQuestion = isQuizStarted && currentQuestionIndex < questions.length 
