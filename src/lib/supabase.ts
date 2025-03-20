@@ -22,6 +22,9 @@ type SupabaseMockClient = {
         single: () => { data: null | unknown; error: null | PostgrestError }
       };
       order: (column: string, options?: Record<string, unknown>) => { 
+        order: (column: string, options?: Record<string, unknown>) => {
+          limit: (limit: number) => { data: unknown[]; error: null | PostgrestError }
+        };
         limit: (limit: number) => { data: unknown[]; error: null | PostgrestError }
       }
     };
@@ -41,7 +44,10 @@ function getSupabaseClient() {
         update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
-          order: () => ({ limit: () => ({ data: [], error: null }) })
+          order: () => ({ 
+            order: () => ({ limit: () => ({ data: [], error: null }) }),
+            limit: () => ({ data: [], error: null }) 
+          })
         })
       })
     } as SupabaseMockClient;
@@ -79,7 +85,10 @@ function getSupabaseClient() {
         update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
-          order: () => ({ limit: () => ({ data: [], error: null }) })
+          order: () => ({ 
+            order: () => ({ limit: () => ({ data: [], error: null }) }),
+            limit: () => ({ data: [], error: null }) 
+          })
         })
       })
     } as SupabaseMockClient;
@@ -105,7 +114,10 @@ function getSupabaseClient() {
         update: () => ({ eq: () => ({ select: () => ({ data: null, error: mockError }) }) }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: mockError }) }),
-          order: () => ({ limit: () => ({ data: [], error: mockError }) })
+          order: () => ({ 
+            order: () => ({ limit: () => ({ data: [], error: mockError }) }),
+            limit: () => ({ data: [], error: mockError }) 
+          })
         })
       })
     } as SupabaseMockClient;
