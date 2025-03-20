@@ -189,7 +189,13 @@ export async function saveQuizResults(quizData: {
       updated_at?: string;
     }
 
-    if (existingUser && 'id' in existingUser) {
+    // Verificação de tipo mais segura
+    const userExists = existingUser !== null && 
+                      existingUser !== undefined && 
+                      typeof existingUser === 'object' && 
+                      Object.prototype.hasOwnProperty.call(existingUser, 'id');
+
+    if (userExists) {
       console.log("Usuário existente encontrado, atualizando registro...", existingUser);
       // Atualizar registro existente
       result = await supabase
