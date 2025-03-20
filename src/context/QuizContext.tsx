@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { QuizQuestion, UserAnswer, QuizResult, UserData } from '../types/quiz';
 import { quizQuestions } from '../data/questions';
 
@@ -15,6 +15,7 @@ interface QuizContextType {
   isQuizStarted: boolean;
   isQuizFinished: boolean;
   isLeadCaptured: boolean;
+  timeRemaining: number;
   startQuiz: () => void;
   nextQuestion: (skipQuestion?: boolean) => void;
   previousQuestion: () => void;
@@ -24,6 +25,8 @@ interface QuizContextType {
   saveUserData: (data: UserData) => void;
   resetQuiz: () => void;
 }
+
+const QUESTION_TIME_LIMIT = 30; // 30 segundos por pergunta
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
@@ -49,11 +52,76 @@ export function QuizProvider({ children }: QuizProviderProps) {
   const [isQuizFinished, setIsQuizFinished] = useState(false);
   const [isLeadCaptured, setIsLeadCaptured] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(QUESTION_TIME_LIMIT);
+  
+  // Ref para o timer
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Computed property for current question
   const currentQuestion = isQuizStarted && currentQuestionIndex < questions.length 
     ? questions[currentQuestionIndex] 
     : null;
+  
+  // Limpar o timer quando o componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+  
+  // Iniciar ou reiniciar o timer quando a pergunta mudar
+  useEffect(() => {
+    if (isQuizStarted && !isQuizFinished) {
+      // Limpar qualquer timer existente
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Resetar o tempo
+      setTimeRemaining(QUESTION_TIME_LIMIT);
+      
+      // Iniciar novo timer
+      timerRef.current = setInterval(() => {
+        setTimeRemaining((prevTime) => {
+          // Se o tempo acabou, avança para a próxima pergunta
+          if (prevTime <= 1) {
+            // Limpar o intervalo
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            
+            // Se ainda não respondeu, considera como pular a questão
+            if (selectedAnswer === null) {
+              nextQuestion(true);
+            } else {
+              nextQuestion(false);
+            }
+            
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      // Limpa o timer quando a pergunta mudar
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [currentQuestionIndex, isQuizStarted, isQuizFinished]);
+  
+  // Parar o timer quando uma resposta for selecionada
+  useEffect(() => {
+    if (selectedAnswer !== null && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [selectedAnswer]);
 
   const startQuiz = () => {
     setIsQuizStarted(true);
@@ -63,9 +131,16 @@ export function QuizProvider({ children }: QuizProviderProps) {
     setIsQuizFinished(false);
     setIsLeadCaptured(false);
     setSelectedAnswer(null);
+    setTimeRemaining(QUESTION_TIME_LIMIT);
   };
 
   const selectAnswer = (selectedOption: number) => {
+    // Parar o timer ao selecionar uma resposta
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     setSelectedAnswer(selectedOption);
     answerQuestion(selectedOption);
   };
@@ -95,9 +170,16 @@ export function QuizProvider({ children }: QuizProviderProps) {
   };
 
   const nextQuestion = (skipQuestion: boolean = false) => {
+    // Parar o timer atual
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
+      setTimeRemaining(QUESTION_TIME_LIMIT);
       
       // Se pular a questão, não salva resposta
       if (skipQuestion && currentQuestion) {
@@ -113,8 +195,15 @@ export function QuizProvider({ children }: QuizProviderProps) {
   };
 
   const previousQuestion = () => {
+    // Parar o timer atual
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setTimeRemaining(QUESTION_TIME_LIMIT);
       
       // Set the selected answer to what the user previously chose
       const previousAnswer = userAnswers.find(
@@ -125,14 +214,22 @@ export function QuizProvider({ children }: QuizProviderProps) {
   };
 
   const finishQuiz = () => {
+    // Parar o timer quando finalizar o quiz
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
-    const wrongAnswers = userAnswers.length - correctAnswers;
+    const answeredQuestions = userAnswers.length;
+    const totalQuestions = questions.length;
+    const wrongAnswers = answeredQuestions - correctAnswers;
     
     const result: QuizResult = {
-      totalQuestions: questions.length,
+      totalQuestions,
       correctAnswers,
       wrongAnswers,
-      score: (correctAnswers / questions.length) * 100,
+      score: (correctAnswers / totalQuestions) * 100,
       answers: userAnswers
     };
 
@@ -149,6 +246,12 @@ export function QuizProvider({ children }: QuizProviderProps) {
   };
 
   const resetQuiz = () => {
+    // Parar o timer ao resetar o quiz
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
     setIsQuizStarted(false);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
@@ -157,6 +260,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
     setUserData(null);
     setIsLeadCaptured(false);
     setSelectedAnswer(null);
+    setTimeRemaining(QUESTION_TIME_LIMIT);
   };
 
   const value = {
@@ -170,6 +274,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
     isQuizStarted,
     isQuizFinished,
     isLeadCaptured,
+    timeRemaining,
     startQuiz,
     nextQuestion,
     previousQuestion,

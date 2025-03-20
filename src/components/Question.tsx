@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaInfoCircle, FaArrowRight, FaTimes } from 'react-icons/fa';
+import { FaInfoCircle, FaArrowRight, FaTimes, FaClock } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { ProgressBar } from './ProgressBar';
 
 export function Question() {
-  const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer } = useQuiz();
+  const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer, timeRemaining } = useQuiz();
   const [showExplanation, setShowExplanation] = useState(false);
   
   if (!currentQuestion) return null;
@@ -15,6 +15,16 @@ export function Question() {
   const progress = questions.findIndex(q => q.id === currentQuestion.id) + 1;
   const isAnswered = selectedAnswer !== null;
   const isCorrect = isAnswered && selectedAnswer === currentQuestion.correctAnswer;
+  
+  // Calcular cor do timer baseada no tempo restante
+  const getTimerColor = () => {
+    if (timeRemaining > 20) return "text-emerald-500";
+    if (timeRemaining > 10) return "text-yellow-500";
+    return "text-red-500";
+  };
+  
+  // Calcular largura da barra de tempo
+  const timerWidth = `${(timeRemaining / 30) * 100}%`;
   
   const getOptionClassName = (index: number) => {
     const baseClasses = "relative w-full p-4 sm:p-5 mb-3 rounded-lg border-2 text-left transition-all duration-200 flex items-center";
@@ -43,7 +53,7 @@ export function Question() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <button 
             onClick={() => nextQuestion(true)} 
             className="font-medium text-gray-300 hover:text-emerald-400 flex items-center text-sm sm:text-base"
@@ -58,7 +68,25 @@ export function Question() {
           </div>
         </div>
         
+        {/* Timer */}
         <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center">
+              <FaClock className={`${getTimerColor()} mr-2`} />
+              <span className={`font-medium ${getTimerColor()}`}>{timeRemaining}s</span>
+            </div>
+          </div>
+          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+            <motion.div 
+              className={`h-full ${getTimerColor().replace('text-', 'bg-')}`}
+              initial={{ width: "100%" }}
+              animate={{ width: timerWidth }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </div>
+        
+        <div className="mb-4">
           <ProgressBar progress={progress} total={questions.length} />
         </div>
         
