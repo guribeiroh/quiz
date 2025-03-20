@@ -34,7 +34,7 @@ export function QuizResult() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 py-12 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
       <div className="max-w-4xl mx-auto">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -42,44 +42,44 @@ export function QuizResult() {
           transition={{ duration: 0.5 }}
           className="bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-700"
         >
-          <div className="bg-emerald-700 p-8 text-white text-center">
-            <div className="mx-auto mb-4 bg-white/10 w-20 h-20 rounded-full flex items-center justify-center">
-              <FaTrophy className="text-yellow-400 text-4xl" />
+          <div className="bg-emerald-700 p-5 sm:p-8 text-white text-center">
+            <div className="mx-auto mb-3 sm:mb-4 bg-white/10 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center">
+              <FaTrophy className="text-yellow-400 text-3xl sm:text-4xl" />
             </div>
-            <h2 className="text-3xl font-bold mb-3">Relatório de Desempenho</h2>
-            <p className="text-xl">Olá, {userData.name}! Aqui está seu relatório completo.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3">Relatório de Desempenho</h2>
+            <p className="text-base sm:text-xl">Olá, {userData.name}! Aqui está seu relatório completo.</p>
           </div>
           
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <div className="mb-4">
-                <span className={`text-6xl font-bold ${getScoreColor()}`}>
+          <div className="p-5 sm:p-8">
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="mb-3 sm:mb-4">
+                <span className={`text-4xl sm:text-6xl font-bold ${getScoreColor()}`}>
                   {score.toFixed(0)}%
                 </span>
               </div>
-              <p className="text-xl text-gray-300">{getScoreMessage()}</p>
-              <div className="flex justify-center items-center mt-4">
-                <div className="flex items-center mr-6">
+              <p className="text-lg sm:text-xl text-gray-300">{getScoreMessage()}</p>
+              <div className="flex justify-center items-center mt-3 sm:mt-4">
+                <div className="flex items-center mr-4 sm:mr-6">
                   <FaCheckCircle className="text-green-500 mr-2" />
-                  <span className="text-gray-300">{correctAnswers} corretas</span>
+                  <span className="text-sm sm:text-base text-gray-300">{correctAnswers} corretas</span>
                 </div>
                 <div className="flex items-center">
                   <FaTimesCircle className="text-red-500 mr-2" />
-                  <span className="text-gray-300">{totalQuestions - correctAnswers} incorretas</span>
+                  <span className="text-sm sm:text-base text-gray-300">{totalQuestions - correctAnswers} incorretas</span>
                 </div>
               </div>
             </div>
             
-            <div className="bg-gray-700 p-6 rounded-xl mb-8">
-              <h3 className="text-xl font-semibold mb-4 text-emerald-400">Análise das Respostas</h3>
+            <div className="bg-gray-700 p-4 sm:p-6 rounded-xl mb-6 sm:mb-8">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-emerald-400">Análise das Respostas</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {questions.map((question, index) => {
                   const userAnswer = quizResult.answers.find(a => a.questionId === question.id);
                   const isCorrect = userAnswer?.isCorrect || false;
                   
                   return (
-                    <div key={question.id} className="border-b border-gray-600 pb-4 last:border-0">
+                    <div key={question.id} className="border-b border-gray-600 pb-3 sm:pb-4 last:border-0">
                       <div className="flex items-start">
                         <div className="flex-shrink-0 mt-1">
                           {isCorrect ? (
@@ -89,10 +89,10 @@ export function QuizResult() {
                           )}
                         </div>
                         <div className="ml-3">
-                          <h4 className="font-medium text-white">
+                          <h4 className="font-medium text-white text-sm sm:text-base">
                             {index + 1}. {question.question}
                           </h4>
-                          <div className="mt-2 text-sm">
+                          <div className="mt-1 sm:mt-2 text-xs sm:text-sm">
                             <p className="text-gray-300">
                               <span className="font-medium">Sua resposta:</span>{' '}
                               {userAnswer ? question.options[userAnswer.selectedOption] : 'Não respondida'}
@@ -112,13 +112,13 @@ export function QuizResult() {
               </div>
             </div>
             
-            <div className="bg-gray-700/50 p-6 rounded-xl border border-gray-600 mb-8">
-              <h3 className="text-xl font-semibold mb-4 text-emerald-400">Seu E-book está pronto!</h3>
-              <p className="text-gray-300 mb-4">
+            <div className="bg-gray-700/50 p-4 sm:p-6 rounded-xl border border-gray-600 mb-6 sm:mb-8">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-emerald-400">Seu E-book está pronto!</h3>
+              <p className="text-sm sm:text-base text-gray-300 mb-3 sm:mb-4">
                 Parabéns por completar o quiz! Seu e-book &quot;Guia Definitivo para Estudar Anatomia&quot; 
                 já está disponível para download. Este guia contém:
               </p>
-              <ul className="text-gray-300 space-y-2 mb-6">
+              <ul className="text-xs sm:text-sm text-gray-300 space-y-2 mb-5 sm:mb-6">
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
                   <span>Técnicas de memorização específicas para anatomia</span>
@@ -139,7 +139,7 @@ export function QuizResult() {
               
               <motion.button
                 onClick={handleDownload}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -151,7 +151,7 @@ export function QuizResult() {
             <div className="text-center">
               <motion.button
                 onClick={resetQuiz}
-                className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center mx-auto"
+                className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center mx-auto text-sm sm:text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >

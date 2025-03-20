@@ -1,214 +1,159 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
-import { FaArrowRight, FaArrowLeft, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { FaInfoCircle, FaArrowRight, FaTimes } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
-
-const difficultyColors = {
-  'fácil': 'bg-green-500',
-  'médio': 'bg-yellow-500',
-  'difícil': 'bg-red-500'
-};
+import { ProgressBar } from './ProgressBar';
 
 export function Question() {
-  const { 
-    questions, 
-    currentQuestionIndex, 
-    userAnswers, 
-    answerQuestion, 
-    nextQuestion, 
-    previousQuestion,
-    finishQuiz
-  } = useQuiz();
-  
+  const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer } = useQuiz();
   const [showExplanation, setShowExplanation] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
   
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  if (!currentQuestion) return null;
   
-  // Reset state when question changes
-  useEffect(() => {
-    const existingAnswer = userAnswers.find(a => a.questionId === currentQuestion.id);
-    if (existingAnswer) {
-      setSelectedOption(existingAnswer.selectedOption);
-      setIsAnswered(true);
-    } else {
-      setSelectedOption(null);
-      setIsAnswered(false);
-    }
-    setShowExplanation(false);
-  }, [currentQuestionIndex, currentQuestion.id, userAnswers]);
+  const progress = questions.findIndex(q => q.id === currentQuestion.id) + 1;
+  const isAnswered = selectedAnswer !== null;
+  const isCorrect = isAnswered && selectedAnswer === currentQuestion.correctAnswer;
   
-  const handleOptionSelect = (optionIndex: number) => {
-    if (isAnswered) return;
+  const getOptionClassName = (index: number) => {
+    let baseClasses = "relative w-full p-4 sm:p-5 mb-3 rounded-lg border-2 text-left transition-all duration-200 flex items-center";
     
-    setSelectedOption(optionIndex);
-    answerQuestion(optionIndex);
-    setIsAnswered(true);
-  };
-  
-  const handleNextClick = () => {
-    if (isLastQuestion) {
-      if (userAnswers.length === questions.length) {
-        finishQuiz();
-      }
-    } else {
-      nextQuestion();
+    // Se ainda não respondeu
+    if (!isAnswered) {
+      return `${baseClasses} bg-gray-700 border-gray-600 text-white hover:border-emerald-400 hover:shadow-md`;
     }
+    
+    // Se é a resposta selecionada
+    if (selectedAnswer === index) {
+      return isCorrect
+        ? `${baseClasses} bg-emerald-600/20 border-emerald-500 text-white`
+        : `${baseClasses} bg-red-600/20 border-red-500 text-white`;
+    }
+    
+    // Se é a resposta correta mas não foi a selecionada
+    if (currentQuestion.correctAnswer === index && !isCorrect) {
+      return `${baseClasses} bg-emerald-600/20 border-emerald-500 text-white`;
+    }
+    
+    // Outras opções após responder
+    return `${baseClasses} bg-gray-700/50 border-gray-600 text-gray-400`;
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
+      <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <motion.button
-            onClick={previousQuestion}
-            disabled={currentQuestionIndex === 0}
-            className={`flex items-center text-white ${currentQuestionIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:text-emerald-400'}`}
-            whileHover={currentQuestionIndex !== 0 ? { scale: 1.05 } : {}}
-            whileTap={currentQuestionIndex !== 0 ? { scale: 0.95 } : {}}
+          <button 
+            onClick={() => nextQuestion(true)} 
+            className="font-medium text-gray-300 hover:text-emerald-400 flex items-center text-sm sm:text-base"
           >
-            <FaArrowLeft className="mr-2" />
-            Anterior
-          </motion.button>
+            Pular questão
+          </button>
           
-          <div className="text-center">
-            <span className="text-white font-medium">
-              Pergunta {currentQuestionIndex + 1} de {questions.length}
-            </span>
-            <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden mt-2">
-              <div 
-                className="bg-emerald-500 h-full rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          <div className="invisible">
-            <FaArrowRight className="ml-2" />
-            Próxima
+          <div className="text-right">
+            <p className="text-sm sm:text-base text-gray-300">
+              <span className="font-medium">{progress}</span> de <span className="font-medium">{questions.length}</span>
+            </p>
           </div>
         </div>
         
-        <motion.div 
-          key={currentQuestion.id}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-          className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700"
+        <div className="mb-6">
+          <ProgressBar progress={progress} total={questions.length} />
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-4 sm:p-6 mb-6"
         >
-          <div className="relative w-full h-48 md:h-64 bg-gray-700">
-            {currentQuestion.imageUrl && (
-              <Image 
-                src={currentQuestion.imageUrl} 
-                alt={`Imagem para ${currentQuestion.question}`}
-                fill
-                className="object-cover"
-              />
-            )}
-            <div className="absolute bottom-4 left-4">
-              <span className={`${difficultyColors[currentQuestion.difficulty]} text-white text-sm px-3 py-1 rounded-full font-medium`}>
-                {currentQuestion.difficulty}
-              </span>
-            </div>
+          <h2 className="text-xl sm:text-2xl font-bold mb-6 text-white">
+            {currentQuestion.question}
+          </h2>
+          
+          <div className="space-y-2">
+            {currentQuestion.options.map((option, index) => (
+              <button
+                key={index}
+                disabled={isAnswered}
+                className={getOptionClassName(index)}
+                onClick={() => selectAnswer(index)}
+              >
+                <span className="text-sm sm:text-base">{option}</span>
+                
+                {isAnswered && selectedAnswer === index && isCorrect && (
+                  <span className="absolute right-3 bg-emerald-500 text-white rounded-full p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+                
+                {isAnswered && selectedAnswer === index && !isCorrect && (
+                  <span className="absolute right-3 bg-red-500 text-white rounded-full p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+                
+                {isAnswered && currentQuestion.correctAnswer === index && selectedAnswer !== index && (
+                  <span className="absolute right-3 bg-emerald-500 text-white rounded-full p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
           
-          <div className="p-6">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              {currentQuestion.question}
-            </h2>
-            
-            <div className="space-y-3">
-              {currentQuestion.options.map((option, index) => (
-                <motion.button
-                  key={index}
-                  onClick={() => handleOptionSelect(index)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-center
-                    ${selectedOption === index 
-                      ? isAnswered && selectedOption === currentQuestion.correctAnswer
-                        ? 'border-green-500 bg-green-500/10' 
-                        : isAnswered && selectedOption !== currentQuestion.correctAnswer
-                          ? 'border-red-500 bg-red-500/10'
-                          : 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/5 text-gray-200'}
-                    ${isAnswered && index === currentQuestion.correctAnswer ? 'border-green-500 bg-green-500/10 text-white' : ''}
-                  `}
-                  whileHover={!isAnswered ? { scale: 1.01 } : {}}
-                  whileTap={!isAnswered ? { scale: 0.99 } : {}}
-                  disabled={isAnswered}
-                >
-                  <div className="flex-1">{option}</div>
-                  {isAnswered && index === currentQuestion.correctAnswer && (
-                    <FaCheckCircle className="text-green-500 text-lg" />
-                  )}
-                  {isAnswered && selectedOption === index && selectedOption !== currentQuestion.correctAnswer && (
-                    <FaTimesCircle className="text-red-500 text-lg" />
-                  )}
-                </motion.button>
-              ))}
-            </div>
-            
-            <AnimatePresence>
-              {isAnswered && showExplanation && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600"
-                >
-                  <h3 className="font-semibold text-emerald-400 mb-2">Explicação:</h3>
-                  <p className="text-gray-200">{currentQuestion.explanation}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <div className="mt-6 flex justify-between">
-              {isAnswered && !showExplanation && (
-                <motion.button
+          {isAnswered && (
+            <div className="mt-6">
+              {showExplanation ? (
+                <div className="bg-gray-700/50 p-4 sm:p-5 rounded-lg border border-gray-600 mt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-medium text-emerald-400">Explicação</h3>
+                    <button 
+                      onClick={() => setShowExplanation(false)}
+                      className="text-emerald-400 hover:text-emerald-300"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                  <p className="text-sm sm:text-base text-gray-300">{currentQuestion.explanation}</p>
+                </div>
+              ) : (
+                <button
                   onClick={() => setShowExplanation(true)}
-                  className="text-emerald-400 font-medium"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="text-emerald-400 hover:text-emerald-300 text-sm sm:text-base flex items-center"
                 >
+                  <FaInfoCircle className="mr-2" />
                   Ver explicação
-                </motion.button>
-              )}
-              
-              {isAnswered && showExplanation && (
-                <motion.button
-                  onClick={() => setShowExplanation(false)}
-                  className="text-emerald-400 font-medium"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Ocultar explicação
-                </motion.button>
-              )}
-              
-              {isAnswered && (
-                <motion.button
-                  onClick={handleNextClick}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-6 rounded-full flex items-center"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isLastQuestion ? 'Finalizar Quiz' : 'Próxima'}
-                  <FaArrowRight className="ml-2" />
-                </motion.button>
+                </button>
               )}
             </div>
-          </div>
+          )}
         </motion.div>
         
-        <div className="mt-8 text-center text-gray-300">
-          <p>Responda todas as perguntas para receber seu e-book gratuito!</p>
+        <div className="flex justify-center">
+          {isAnswered && (
+            <motion.button
+              onClick={() => nextQuestion(false)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-full text-base sm:text-lg flex items-center shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Próxima Questão
+              <FaArrowRight className="ml-2" />
+            </motion.button>
+          )}
         </div>
+        
+        <p className="text-center mt-6 text-gray-300 text-xs sm:text-sm">
+          Responda todas as questões para receber seu e-book gratuito!
+        </p>
       </div>
     </div>
   );
