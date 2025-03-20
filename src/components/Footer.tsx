@@ -12,6 +12,7 @@ export function Footer() {
           width={100}
           height={30}
           className="opacity-70 hover:opacity-100 transition-opacity"
+          unoptimized={true}
         />
       </div>
     </div>

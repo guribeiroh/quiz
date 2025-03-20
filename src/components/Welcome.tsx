@@ -26,6 +26,7 @@ export function Welcome() {
               height={250}
               className="mx-auto"
               priority
+              unoptimized={true}
             />
           </div>
         </div>
