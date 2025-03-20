@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quiz Anatomia Sem Medo
 
-## Getting Started
+Um quiz interativo e moderno sobre anatomia humana, com 10 perguntas de dificuldade crescente, captura de leads e entrega de e-book.
 
-First, run the development server:
+## Características
+
+- 🧠 Quiz com 10 perguntas de anatomia em dificuldade crescente
+- 🎯 Feedback imediato e explicações detalhadas
+- 📊 Pontuação e relatório de desempenho completo
+- 📚 Captura de leads para entregar e-book gratuito
+- 🌐 Design moderno e responsivo
+- ✨ Animações elegantes usando Framer Motion
+
+## Tecnologias Utilizadas
+
+- [Next.js 14](https://nextjs.org/) com App Router
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/) para estilização
+- [React Hook Form](https://react-hook-form.com/) para gerenciamento de formulários
+- [Zod](https://zod.dev/) para validação de dados
+- [Framer Motion](https://www.framer.com/motion/) para animações
+- [React Icons](https://react-icons.github.io/react-icons/) para ícones
+
+## Como Executar
+
+Primeiro, instale as dependências:
+
+```bash
+npm install
+# ou
+yarn install
+# ou
+pnpm install
+# ou
+bun install
+```
+
+Em seguida, inicie o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
+# ou
 yarn dev
-# or
+# ou
 pnpm dev
-# or
+# ou
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estrutura do Projeto
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **/src/app**: Arquivos principais da aplicação Next.js
+- **/src/components**: Componentes React reutilizáveis
+- **/src/context**: Context API para gerenciamento de estado global
+- **/src/data**: Dados do quiz (perguntas, respostas, etc.)
+- **/src/types**: Definições de tipos TypeScript
 
-## Learn More
+## Fluxo da Aplicação
 
-To learn more about Next.js, take a look at the following resources:
+1. **Tela de Boas-vindas**: Apresentação e explicação do quiz
+2. **Quiz**: 10 perguntas com dificuldade progressiva
+3. **Captura de Lead**: Formulário para o usuário fornecer seus dados
+4. **Relatório Final**: Análise de desempenho e download do e-book
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Personalização
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Para personalizar o quiz:
 
-## Deploy on Vercel
+1. Edite as perguntas em `/src/data/questions.ts`
+2. Modifique o esquema de cores no arquivo `tailwind.config.js`
+3. Altere os textos nos componentes para se adequar ao seu público-alvo
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Produção
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Para criar uma versão otimizada para produção:
+
+```bash
+npm run build
+# ou
+yarn build
+# ou
+pnpm build
+# ou
+bun build
+```
+
+---
+
+Desenvolvido como um projeto de demonstração para captura de leads e educação.
