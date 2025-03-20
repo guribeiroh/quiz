@@ -1,11 +1,13 @@
 "use client";
 
-import { motion } from 'framer-motion';
-import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 
 export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   
   if (!quizResult || !userData) return null;
   
@@ -31,6 +33,10 @@ export function QuizResult() {
     // Em uma aplicação real, aqui você poderia abrir uma nova aba com o PDF
     // ou iniciar o download do arquivo
     alert("Em uma aplicação real, aqui seria iniciado o download do e-book.");
+  };
+  
+  const toggleAnalysis = () => {
+    setIsAnalysisOpen(!isAnalysisOpen);
   };
   
   return (
@@ -71,45 +77,69 @@ export function QuizResult() {
             </div>
             
             <div className="bg-gray-700 p-4 sm:p-6 rounded-xl mb-6 sm:mb-8">
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-emerald-400">Análise das Respostas</h3>
+              <button 
+                onClick={toggleAnalysis}
+                className="w-full flex justify-between items-center text-left focus:outline-none"
+              >
+                <h3 className="text-lg sm:text-xl font-semibold text-emerald-400">Análise das Respostas</h3>
+                <motion.div 
+                  animate={{ rotate: isAnalysisOpen ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-emerald-400"
+                >
+                  <FaChevronDown />
+                </motion.div>
+              </button>
               
-              <div className="space-y-3 sm:space-y-4">
-                {questions.map((question, index) => {
-                  const userAnswer = quizResult.answers.find(a => a.questionId === question.id);
-                  const isCorrect = userAnswer?.isCorrect || false;
-                  
-                  return (
-                    <div key={question.id} className="border-b border-gray-600 pb-3 sm:pb-4 last:border-0">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 mt-1">
-                          {isCorrect ? (
-                            <FaCheckCircle className="text-green-500" />
-                          ) : (
-                            <FaTimesCircle className="text-red-500" />
-                          )}
-                        </div>
-                        <div className="ml-3">
-                          <h4 className="font-medium text-white text-sm sm:text-base">
-                            {index + 1}. {question.question}
-                          </h4>
-                          <div className="mt-1 sm:mt-2 text-xs sm:text-sm">
-                            <p className="text-gray-300">
-                              <span className="font-medium">Sua resposta:</span>{' '}
-                              {userAnswer ? question.options[userAnswer.selectedOption] : 'Não respondida'}
-                            </p>
-                            {!isCorrect && (
-                              <p className="text-emerald-400 mt-1">
-                                <span className="font-medium">Resposta correta:</span>{' '}
-                                {question.options[question.correctAnswer]}
-                              </p>
-                            )}
+              <AnimatePresence>
+                {isAnalysisOpen && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-3 sm:space-y-4 mt-4">
+                      {questions.map((question, index) => {
+                        const userAnswer = quizResult.answers.find(a => a.questionId === question.id);
+                        const isCorrect = userAnswer?.isCorrect || false;
+                        
+                        return (
+                          <div key={question.id} className="border-b border-gray-600 pb-3 sm:pb-4 last:border-0">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 mt-1">
+                                {isCorrect ? (
+                                  <FaCheckCircle className="text-green-500" />
+                                ) : (
+                                  <FaTimesCircle className="text-red-500" />
+                                )}
+                              </div>
+                              <div className="ml-3">
+                                <h4 className="font-medium text-white text-sm sm:text-base">
+                                  {index + 1}. {question.question}
+                                </h4>
+                                <div className="mt-1 sm:mt-2 text-xs sm:text-sm">
+                                  <p className="text-gray-300">
+                                    <span className="font-medium">Sua resposta:</span>{' '}
+                                    {userAnswer ? question.options[userAnswer.selectedOption] : 'Não respondida'}
+                                  </p>
+                                  {!isCorrect && (
+                                    <p className="text-emerald-400 mt-1">
+                                      <span className="font-medium">Resposta correta:</span>{' '}
+                                      {question.options[question.correctAnswer]}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
             <div className="bg-gray-700/50 p-4 sm:p-6 rounded-xl border border-gray-600 mb-6 sm:mb-8">
