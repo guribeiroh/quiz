@@ -56,11 +56,70 @@ export function QuizProvider({ children }: QuizProviderProps) {
   
   // Ref para o timer
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
+  
+  // Referência para funções para evitar dependências circulares
+  const nextQuestionRef = useRef<(skipQuestion?: boolean) => void>();
+  
   // Computed property for current question
   const currentQuestion = isQuizStarted && currentQuestionIndex < questions.length 
     ? questions[currentQuestionIndex] 
     : null;
+  
+  // Defina a função finishQuiz com useCallback
+  const finishQuiz = useCallback(() => {
+    // Parar o timer quando finalizar o quiz
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
+    const answeredQuestions = userAnswers.length;
+    const totalQuestions = questions.length;
+    const wrongAnswers = answeredQuestions - correctAnswers;
+    
+    const result: QuizResult = {
+      totalQuestions,
+      correctAnswers,
+      wrongAnswers,
+      score: (correctAnswers / totalQuestions) * 100,
+      answers: userAnswers
+    };
+
+    setQuizResult(result);
+    setIsQuizFinished(true);
+  }, [questions.length, userAnswers]);
+  
+  // Defina a função nextQuestion com useCallback
+  const nextQuestion = useCallback((skipQuestion: boolean = false) => {
+    // Parar o timer atual
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedAnswer(null);
+      setTimeRemaining(QUESTION_TIME_LIMIT);
+      
+      // Se pular a questão, não salva resposta
+      if (skipQuestion && currentQuestion) {
+        // Remove qualquer resposta anterior a esta questão, se existir
+        setUserAnswers(prevAnswers => 
+          prevAnswers.filter(answer => answer.questionId !== currentQuestion.id)
+        );
+      }
+    } else {
+      // If it's the last question, finish the quiz
+      finishQuiz();
+    }
+  }, [currentQuestionIndex, questions.length, currentQuestion, finishQuiz]);
+  
+  // Atualize a referência quando a função nextQuestion for recriada
+  useEffect(() => {
+    nextQuestionRef.current = nextQuestion;
+  }, [nextQuestion]);
   
   // Limpar o timer quando o componente for desmontado
   useEffect(() => {
@@ -94,10 +153,10 @@ export function QuizProvider({ children }: QuizProviderProps) {
             }
             
             // Se ainda não respondeu, considera como pular a questão
-            if (selectedAnswer === null) {
-              nextQuestion(true);
-            } else {
-              nextQuestion(false);
+            if (selectedAnswer === null && nextQuestionRef.current) {
+              nextQuestionRef.current(true);
+            } else if (nextQuestionRef.current) {
+              nextQuestionRef.current(false);
             }
             
             return 0;
@@ -113,7 +172,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
         clearInterval(timerRef.current);
       }
     };
-  }, [currentQuestionIndex, isQuizStarted, isQuizFinished, nextQuestion, selectedAnswer]);
+  }, [currentQuestionIndex, isQuizStarted, isQuizFinished, selectedAnswer]);
   
   // Parar o timer quando uma resposta for selecionada
   useEffect(() => {
@@ -168,55 +227,6 @@ export function QuizProvider({ children }: QuizProviderProps) {
 
     setUserAnswers(updatedAnswers);
   };
-
-  const finishQuiz = useCallback(() => {
-    // Parar o timer quando finalizar o quiz
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    const correctAnswers = userAnswers.filter(answer => answer.isCorrect).length;
-    const answeredQuestions = userAnswers.length;
-    const totalQuestions = questions.length;
-    const wrongAnswers = answeredQuestions - correctAnswers;
-    
-    const result: QuizResult = {
-      totalQuestions,
-      correctAnswers,
-      wrongAnswers,
-      score: (correctAnswers / totalQuestions) * 100,
-      answers: userAnswers
-    };
-
-    setQuizResult(result);
-    setIsQuizFinished(true);
-  }, [questions.length, userAnswers]);
-
-  const nextQuestion = useCallback((skipQuestion: boolean = false) => {
-    // Parar o timer atual
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
-      setTimeRemaining(QUESTION_TIME_LIMIT);
-      
-      // Se pular a questão, não salva resposta
-      if (skipQuestion && currentQuestion) {
-        // Remove qualquer resposta anterior a esta questão, se existir
-        setUserAnswers(prevAnswers => 
-          prevAnswers.filter(answer => answer.questionId !== currentQuestion.id)
-        );
-      }
-    } else {
-      // If it's the last question, finish the quiz
-      finishQuiz();
-    }
-  }, [currentQuestionIndex, questions.length, currentQuestion, finishQuiz]);
 
   const previousQuestion = () => {
     // Parar o timer atual
