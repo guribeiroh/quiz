@@ -9,7 +9,18 @@ type SupabaseMockClient = {
     upsert: (data: Record<string, unknown>, options?: Record<string, unknown>) => { 
       select: () => { data: null | unknown[]; error: null | unknown }
     };
+    insert: (data: Record<string, unknown>) => {
+      select: () => { data: null | unknown[]; error: null | unknown }
+    };
+    update: (data: Record<string, unknown>) => {
+      eq: (column: string, value: unknown) => {
+        select: () => { data: null | unknown[]; error: null | unknown }
+      }
+    };
     select: (columns?: string) => { 
+      eq: (column: string, value: unknown) => {
+        single: () => { data: null | unknown; error: null | unknown }
+      };
       order: (column: string, options?: Record<string, unknown>) => { 
         order: (column: string, options?: Record<string, unknown>) => {
           limit: (limit: number) => { data: unknown[]; error: null | unknown }
@@ -28,7 +39,12 @@ function getSupabaseClient() {
     return {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
-        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
+        insert: () => ({ select: () => ({ data: null, error: null }) }),
+        update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
+        select: () => ({ 
+          eq: () => ({ single: () => ({ data: null, error: null }) }),
+          order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) })
+        })
       })
     } as SupabaseMockClient;
   }
@@ -61,7 +77,12 @@ function getSupabaseClient() {
     return {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
-        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) }) })
+        insert: () => ({ select: () => ({ data: null, error: null }) }),
+        update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
+        select: () => ({ 
+          eq: () => ({ single: () => ({ data: null, error: null }) }),
+          order: () => ({ order: () => ({ limit: () => ({ data: [], error: null }) }) })
+        })
       })
     } as SupabaseMockClient;
   }
@@ -76,7 +97,12 @@ function getSupabaseClient() {
     return {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
-        select: () => ({ order: () => ({ order: () => ({ limit: () => ({ data: [], error: { message: "Erro ao criar cliente Supabase" } }) }) }) })
+        insert: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
+        update: () => ({ eq: () => ({ select: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }) }),
+        select: () => ({ 
+          eq: () => ({ single: () => ({ data: null, error: { message: "Erro ao criar cliente Supabase" } }) }),
+          order: () => ({ order: () => ({ limit: () => ({ data: [], error: { message: "Erro ao criar cliente Supabase" } }) }) })
+        })
       })
     } as SupabaseMockClient;
   }
