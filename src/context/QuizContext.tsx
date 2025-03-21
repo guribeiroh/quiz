@@ -23,7 +23,7 @@ interface QuizContextType {
   selectAnswer: (selectedOption: number) => void;
   answerQuestion: (selectedOption: number) => void;
   finishQuiz: () => void;
-  saveUserData: (data: UserData) => Promise<void>;
+  saveUserData: (data: UserData) => Promise<{success: boolean; data?: Record<string, unknown>; error?: unknown} | undefined>;
   resetQuiz: () => void;
 }
 
