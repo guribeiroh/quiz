@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar, FaCrown } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
+import Link from 'next/link';
 
 interface RankingEntry {
   user_name: string;
@@ -229,7 +230,7 @@ export function QuizRanking() {
           </div>
         </motion.div>
         <div className="mt-6 text-center">
-          <a href="/" className="text-emerald-400 hover:text-emerald-300 text-sm underline">← Voltar para o Quiz</a>
+          <Link href="/" className="text-emerald-400 hover:text-emerald-300 text-sm underline">← Voltar para o Quiz</Link>
         </div>
       </div>
       <Footer />

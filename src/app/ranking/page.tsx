@@ -1,12 +1,16 @@
 "use client";
 
+import React from 'react';
 import { QuizRanking } from "@/components/QuizRanking";
 import { Suspense } from "react";
 import { motion } from "framer-motion";
-import { FaTrophy, FaSpinner } from "react-icons/fa";
+import { FaTrophy } from "react-icons/fa";
 
 // Esta configuração evita a pré-renderização da página durante o build
 export const dynamic = 'force-dynamic';
+
+// Não é possível usar Metadata com "use client" directive
+// O metadata precisa ser definido em um Server Component
 
 export default function RankingPage() {
   return (
