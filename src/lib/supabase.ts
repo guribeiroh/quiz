@@ -206,7 +206,7 @@ export async function saveQuizResults(
     console.log("Cliente Supabase inicializado para quiz:", !!supabase);
     
     // Verificar se o email ou telefone já existem no banco de dados
-    const { data: existingUserEmail } = await supabase
+    const { data: existingUserEmailResult } = await supabase
       .from('quiz_results')
       .select('id, user_email, user_phone, referral_code')
       .eq('user_email', data.userEmail)
@@ -225,7 +225,7 @@ export async function saveQuizResults(
     }
     
     // Se encontramos um usuário com o mesmo email ou telefone, impedir cadastro duplicado
-    if ((existingUserEmail && existingUserEmail.length > 0) || 
+    if ((existingUserEmailResult && existingUserEmailResult.length > 0) || 
         (existingUserPhone && existingUserPhone.length > 0)) {
       console.log("Usuário já completou o quiz anteriormente");
       
