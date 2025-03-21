@@ -158,7 +158,10 @@ export default function TesteReferral() {
           
           setDebugInfo({ 
             debugData: response.data || [],
-            debugError: response.error || null
+            debugError: response.error ? {
+              message: String(response.error),
+              code: 'QUERY_ERROR'
+            } : undefined
           });
         } catch (debugError) {
           console.error("Erro ao buscar informações de debug:", debugError);
