@@ -280,7 +280,9 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     }
     
     console.log("Resultado do quiz salvo com sucesso:", data);
-    return { success: true, data: { ...data?.[0], referralCode: userReferralCode } };
+    // Verificar se data é um array com pelo menos um elemento antes de usar spread
+    const resultData = data && Array.isArray(data) && data.length > 0 ? data[0] : {};
+    return { success: true, data: { ...resultData, referralCode: userReferralCode } };
     
   } catch (e) {
     console.error("Exceção ao salvar resultado do quiz:", e);
