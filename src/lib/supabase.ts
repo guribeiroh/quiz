@@ -183,17 +183,23 @@ export function getSupabaseClient() {
 export async function saveQuizResults(quizData: QuizResultData, referralCode?: string) {
   try {
     console.log("Iniciando saveQuizResults com referralCode:", referralCode);
-    const supabase = getSupabaseClient();
-    console.log("Cliente Supabase inicializado:", !!supabase);
     
+    const supabase = getSupabaseClient();
+    console.log("Cliente Supabase inicializado para quiz:", !!supabase);
+    
+    // Gerar um código de referência único para este usuário
+    const newReferralCode = generateUniqueCode();
+    console.log("Novo código de referência gerado:", newReferralCode);
+    
+    // Variáveis para rastrear referência
     let referrerId = null;
     let referralBonusPoints = 0;
-    let userReferralCode = quizData.referralCode || referralCode;
     
-    // Processa código de referência, se fornecido
+    // Processar código de referência se fornecido
     if (referralCode) {
+      console.log("Processando código de referência:", referralCode);
+      
       try {
-        console.log("Processando código de referência:", referralCode);
         // Buscar o referenciador pelo código
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
@@ -203,43 +209,38 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
         
         if (referrerError) {
           console.log("Erro ao buscar referenciador:", referrerError);
-        } else if (referrerData as ReferrerData) {
-          const typedReferrerData = referrerData as ReferrerData;
-          console.log("Referenciador encontrado:", typedReferrerData);
-          referrerId = typedReferrerData.id;
+        } else if (referrerData) {
+          console.log("Referenciador encontrado:", referrerData);
+          
+          // Definir o ID do referenciador
+          referrerId = referrerData.id;
+          
+          // Adicionar pontos de bônus para quem usou o código (10 pontos)
+          referralBonusPoints = 10;
+          
+          // Adicionar pontos de bônus para o referenciador (5 pontos)
+          const currentReferrerBonus = referrerData.referral_bonus_points || 0;
+          const newReferrerBonus = currentReferrerBonus + 5;
+          
+          console.log("Pontos de bônus atualizados para:", newReferrerBonus);
           
           // Atualizar os pontos de bônus do referenciador
-          const bonusPoints = (typedReferrerData.referral_bonus_points || 0) + 5;
           const { error: updateError } = await supabase
             .from('quiz_results')
-            .update({ referral_bonus_points: bonusPoints })
-            .eq('id', typedReferrerData.id);
-            
-          if (updateError) {
-            console.log("Erro ao atualizar pontos de bônus:", updateError);
-          } else {
-            console.log("Pontos de bônus atualizados para:", bonusPoints);
-          }
+            .update({ referral_bonus_points: newReferrerBonus })
+            .eq('id', referrerId);
           
-          // Definir o bônus para quem usou o código
-          referralBonusPoints = 10;
+          if (updateError) {
+            console.log("Erro ao atualizar pontos de bônus do referenciador:", updateError);
+          }
         }
       } catch (e) {
         console.log("Erro ao processar código de referência:", e);
       }
     }
     
-    // Gerar um código de referência único para o usuário se ainda não tiver
-    if (!userReferralCode) {
-      // Criar código baseado no email e timestamp
-      const timestamp = new Date().getTime().toString(36);
-      const emailHash = quizData.userEmail.split('@')[0].substring(0, 3);
-      userReferralCode = `${emailHash}${timestamp}`.toUpperCase();
-      console.log("Código de referência gerado:", userReferralCode);
-    }
-    
-    // Dados formatados para inserção - incluindo SEMPRE os campos de referência
-    const formattedData: Record<string, unknown> = {
+    // Preparar os dados para inserção
+    let formattedData: Record<string, any> = {
       user_name: quizData.userName,
       user_email: quizData.userEmail,
       score: quizData.score,
@@ -248,41 +249,92 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       total_time_spent: quizData.totalTimeSpent,
       average_time_per_question: quizData.averageTimePerQuestion,
       completion_rhythm: quizData.completionRhythm || 'constante',
-      referral_code: userReferralCode,  // Adicionar sempre o código de referência
-      referred_by: referrerId,         // Adicionar sempre o ID do referenciador (null se não houver)
-      referral_bonus_points: referralBonusPoints  // Adicionar sempre os pontos de bônus
+      referral_code: newReferralCode,
+      referred_by: referrerId,
+      referral_bonus_points: referralBonusPoints
     };
     
-    console.log("Dados formatados para inserção:", JSON.stringify(formattedData));
+    console.log("Dados formatados para inserção:", formattedData);
     
-    // Tenta inserir primeiro (assumindo que é um novo usuário)
+    // Verificar se o email já existe no banco de dados
+    const { data: existingUser, error: checkError } = await supabase
+      .from('quiz_results')
+      .select('id, user_email')
+      .eq('user_email', quizData.userEmail)
+      .maybeSingle();
+    
+    if (existingUser) {
+      console.log("Usuário já existe, atualizando registro existente");
+      
+      // Remove o referral_code da atualização para manter o original
+      const { referral_code, ...updateData } = formattedData;
+      
+      // Atualizar o registro existente
+      const { data, error } = await supabase
+        .from('quiz_results')
+        .update(updateData)
+        .eq('id', existingUser.id)
+        .select();
+      
+      if (error) {
+        console.error("Erro ao atualizar registro existente:", error);
+        return { success: false, error };
+      }
+      
+      console.log("Resultado do Supabase:", data);
+      return { 
+        success: true, 
+        data: { 
+          ...data[0],
+          referralCode: existingUser.referral_code || newReferralCode, // Usar o código existente
+          isUpdate: true
+        } 
+      };
+    }
+    
+    // Inserir os dados no Supabase
     const { data, error } = await supabase
       .from('quiz_results')
-      .upsert(formattedData, { onConflict: 'user_email' })
+      .insert(formattedData)
       .select();
     
     if (error) {
       console.error("Erro ao salvar resultado do quiz:", error);
+      
+      // Detalhando mais o erro quando for 409 (Conflict)
+      if (error.code === '23505' || error.code === 'P0001' || error.message.includes('duplicate key value')) {
+        console.error("Erro de duplicação detectado. Detalhes:", error.details);
+        return { 
+          success: false, 
+          error: { 
+            ...error, 
+            message: "Já existe um registro com este email. Use a página de teste para verificar seu código de referência existente." 
+          }
+        };
+      }
+      
       return { success: false, error };
     }
     
-    console.log("Resultado do quiz salvo com sucesso:", data);
+    console.log("Resultado do Supabase:", data);
     
-    // Abordagem alternativa para evitar problemas com o operador spread
-    const finalData: Record<string, unknown> = { referralCode: userReferralCode };
+    // Finalizar
+    const finalData = { 
+      referralCode: newReferralCode
+    };
     
-    // Adicionar propriedades de data[0] apenas se existirem
-    if (data && Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
-      // Copiar as propriedades manualmente
+    // Adicionar outras propriedades se existirem dados
+    if (data && data.length > 0) {
       Object.keys(data[0]).forEach(key => {
-        finalData[key] = (data[0] as Record<string, unknown>)[key];
+        if (key !== 'referral_code') {
+          (finalData as any)[key] = data[0][key];
+        }
       });
     }
     
     return { success: true, data: finalData };
-    
   } catch (e) {
-    console.error("Exceção ao salvar resultado do quiz:", e);
+    console.error("Erro ao salvar quiz:", e);
     return { success: false, error: e };
   }
 }
@@ -368,4 +420,24 @@ export async function getQuizRanking(limit = 10) {
     console.error("Erro ao buscar ranking:", e);
     return { success: false, error: e };
   }
+}
+
+// Função para gerar um código de referência único
+function generateUniqueCode(): string {
+  // Gerar string aleatória usando caracteres alfanuméricos (excluindo caracteres ambíguos como 0, O, 1, I, etc.)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  
+  // Primeiro caractere sempre uma letra para melhorar legibilidade
+  result += chars.charAt(Math.floor(Math.random() * 24)); // Apenas letras (0-23)
+  
+  // 7 caracteres restantes podem ser letras ou números
+  for (let i = 0; i < 7; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  // Adicionar timestamp para garantir unicidade
+  const timestamp = new Date().getTime().toString(36).slice(-3);
+  
+  return result + timestamp;
 } 
