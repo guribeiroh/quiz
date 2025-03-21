@@ -359,16 +359,21 @@ export function QuizProvider({ children }: QuizProviderProps) {
         }
       };
       
-      await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      try {
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (webhookError) {
+        console.error('Erro ao enviar para webhook:', webhookError);
+        // Continuamos mesmo com erro no webhook, para tentar salvar no Supabase
+      }
       
       // 2. Salvar no Supabase
-      console.log("Enviando para o Supabase com os parâmetros:", {
+      const quizResultData = {
         userName: userData.name,
         userEmail: userData.email,
         userPhone: userData.phone, // Adicionando o telefone do usuário
@@ -379,20 +384,14 @@ export function QuizProvider({ children }: QuizProviderProps) {
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
         completionRhythm,
         referralCode: userData.referralCode
-      });
+      };
       
-      const supabaseResult = await saveQuizResults({
-        userName: userData.name,
-        userEmail: userData.email,
-        userPhone: userData.phone, // Adicionando o telefone do usuário
-        score: quizResult.score,
-        correctAnswers: quizResult.correctAnswers,
-        totalQuestions: quizResult.totalQuestions,
-        totalTimeSpent: quizResult.totalTimeSpent ?? 0,
-        averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
-        completionRhythm,
-        referralCode: userData.referralCode
-      }, userData.referralCode);
+      console.log("Enviando para o Supabase com os parâmetros:", quizResultData);
+      
+      const supabaseResult = await saveQuizResults(
+        quizResultData, 
+        userData.referralCode // Passando como segundo parâmetro para deixar claro que é o código usado
+      );
       
       console.log("Resultado do Supabase:", supabaseResult);
       
@@ -439,6 +438,11 @@ export function QuizProvider({ children }: QuizProviderProps) {
       referralCode: usedReferralCode || data.referralCode
     };
     
+    console.log("saveUserData - Dados atualizados com código de referência:", 
+      usedReferralCode ? `Usando código do localStorage: ${usedReferralCode}` : 
+      data.referralCode ? `Usando código do formulário: ${data.referralCode}` : 
+      "Sem código de referência");
+    
     setUserData(updatedData);
     setIsLeadCaptured(true);
     
@@ -447,14 +451,34 @@ export function QuizProvider({ children }: QuizProviderProps) {
       try {
         const result = await sendDataToWebhook(updatedData, quizResult);
         
-        // Se houver erro de usuário já existente, propagar esse erro específico
+        // Se houver erro, propagar esse erro específico
         if (result && !result.success && result.error) {
           // Verificar se o erro tem a propriedade 'code' usando verificação de tipo
-          const errorWithCode = result.error as { code?: string };
-          if (errorWithCode.code === 'USER_ALREADY_EXISTS') {
-            throw result.error;
+          const errorWithCode = result.error as { code?: string; message?: string };
+          
+          // Diferentes tipos de erro que podem ser propagados
+          switch (errorWithCode.code) {
+            case 'USER_ALREADY_EXISTS':
+              console.error("Usuário já existe:", errorWithCode.message);
+              throw {...result.error, status: 409}; // Status de conflito para já existente
+            
+            case 'DB_CONFIG_ERROR':
+              console.error("Erro de configuração do banco:", errorWithCode.message);
+              throw {...result.error, status: 500}; // Status de erro de servidor
+            
+            case 'SERVER_ERROR':
+              console.error("Erro de servidor:", errorWithCode.message);
+              throw {...result.error, status: 503}; // Status de serviço indisponível
+            
+            default:
+              if (result.error) {
+                console.error("Erro desconhecido:", result.error);
+                throw result.error;
+              }
           }
         }
+        
+        return result;
       } catch (error) {
         console.error("Erro ao enviar dados para o webhook e Supabase:", error);
         // Lançar o erro para tratamento no componente

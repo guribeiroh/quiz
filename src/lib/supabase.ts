@@ -246,9 +246,12 @@ export async function saveQuizResults(
     let referrerId = null;
     let referralBonusPoints = 0;
     
+    // Processar código de referência usado (priorizar o parâmetro usedReferralCode)
+    const effectiveReferralCode = usedReferralCode || userData.referralCode;
+    
     // Processar código de referência se fornecido
-    if (userData.referralCode) {
-      console.log("Processando código de referência:", userData.referralCode);
+    if (effectiveReferralCode) {
+      console.log("Processando código de referência:", effectiveReferralCode);
       
       try {
         // Interface para tipar corretamente o resultado da consulta
@@ -262,7 +265,7 @@ export async function saveQuizResults(
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
           .select('id, user_email, referral_bonus_points')
-          .eq('referral_code', userData.referralCode)
+          .eq('referral_code', effectiveReferralCode)
           .single();
         
         if (referrerError) {
@@ -316,7 +319,7 @@ export async function saveQuizResults(
     console.log("Dados formatados para inserção:", formattedData);
     
     // Inserir os dados no Supabase
-    const { data: insertResult, error } = await supabase
+    const { data, error } = await supabase
       .from('quiz_results')
       .insert(formattedData)
       .select();
@@ -331,15 +334,48 @@ export async function saveQuizResults(
           success: false, 
           error: { 
             ...error, 
-            message: "Já existe um registro com este email ou telefone. Cada usuário pode participar apenas uma vez." 
+            message: "Já existe um registro com este email ou telefone. Cada usuário pode participar apenas uma vez.",
+            code: "USER_ALREADY_EXISTS"
           }
         };
       }
       
-      return { success: false, error };
+      // Verificar se é outro tipo de erro
+      if (error.code === '42P01') {
+        console.error("Tabela não existe:", error.details);
+        return { 
+          success: false, 
+          error: { 
+            ...error,
+            message: "Erro de configuração do banco de dados. Por favor, contate o suporte.",
+            code: "DB_CONFIG_ERROR"
+          }
+        };
+      } else if (error.code?.startsWith('5')) {
+        // Erros de servidor (5xx)
+        console.error("Erro de servidor Supabase:", error);
+        return { 
+          success: false, 
+          error: { 
+            ...error,
+            message: "Erro temporário no servidor. Por favor, tente novamente em alguns instantes.",
+            code: "SERVER_ERROR"
+          }
+        };
+      }
+      
+      // Erro genérico
+      return { 
+        success: false, 
+        error: {
+          ...error,
+          message: "Erro ao salvar os resultados do quiz. Por favor, tente novamente.",
+          code: "UNKNOWN_ERROR"
+        }
+      };
     }
     
-    console.log("Resultado do Supabase:", insertResult);
+    console.log("Resultado do Supabase:", data);
     
     // Finalizar
     const finalData: Record<string, unknown> = { 
@@ -347,10 +383,10 @@ export async function saveQuizResults(
     };
     
     // Adicionar outras propriedades se existirem dados
-    if (insertResult && insertResult.length > 0 && typeof insertResult[0] === 'object') {
-      Object.keys(insertResult[0] as Record<string, unknown>).forEach(key => {
+    if (data && data.length > 0 && typeof data[0] === 'object') {
+      Object.keys(data[0] as Record<string, unknown>).forEach(key => {
         if (key !== 'referral_code') {
-          (finalData as Record<string, unknown>)[key] = (insertResult[0] as Record<string, unknown>)[key];
+          (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
         }
       });
     }

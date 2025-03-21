@@ -80,13 +80,23 @@ export function LeadCapture() {
       // Verificar se é o erro de usuário já existente usando verificação de tipo segura
       if (typeof error === 'object' && error !== null) {
         // Usar type assertion para informar ao TypeScript sobre a possível propriedade code
-        const errorWithCode = error as { code?: string; message?: string };
+        const errorWithCode = error as { code?: string; message?: string; status?: number };
         
-        if (errorWithCode.code === 'USER_ALREADY_EXISTS') {
+        // Usar o status HTTP ou o código para determinar o tipo de erro
+        if (errorWithCode.status === 409 || errorWithCode.code === 'USER_ALREADY_EXISTS') {
           setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
-        } else if (errorWithCode.message && typeof errorWithCode.message === 'string' && 
-                  errorWithCode.message.includes('já completou o quiz')) {
-          setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
+        } else if (errorWithCode.status === 500 || errorWithCode.code === 'DB_CONFIG_ERROR') {
+          setSubmitError('Nosso sistema está temporariamente indisponível devido a uma manutenção. Por favor, tente novamente mais tarde.');
+        } else if (errorWithCode.status === 503 || errorWithCode.code === 'SERVER_ERROR') {
+          setSubmitError('Servidor temporariamente sobrecarregado. Por favor, tente novamente em alguns instantes.');
+        } else if (errorWithCode.message && typeof errorWithCode.message === 'string') {
+          // Se temos uma mensagem de erro, usá-la diretamente
+          if (errorWithCode.message.includes('já completou o quiz') || 
+              errorWithCode.message.includes('já existe um registro')) {
+            setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
+          } else {
+            setSubmitError(`Erro: ${errorWithCode.message}`);
+          }
         } else {
           setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
         }
