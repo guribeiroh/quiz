@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaGift, FaTimes, FaArrowRight } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
