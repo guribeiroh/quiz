@@ -193,11 +193,16 @@ export async function saveQuizResults(quizData: {
           return { success: false, error: searchError || "Usuário não encontrado" };
         }
         
+        // Definir interface para o tipo do usuário retornado
+        interface QuizUserRecord {
+          id: string;
+        }
+        
         // Atualizar o registro existente
         const updateResult = await supabase
           .from('quiz_results')
           .update(formattedData)
-          .eq('id', existingUser.id)
+          .eq('id', (existingUser as QuizUserRecord).id)
           .select();
         
         console.log("Resultado da operação de update:", updateResult);
