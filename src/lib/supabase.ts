@@ -234,7 +234,7 @@ export async function saveQuizResults(quizData: {
     // Verificar se devemos adicionar os campos de referência (caso colunas existam)
     try {
       // Primeiro verificamos se as colunas existem fazendo uma consulta de teste
-      const { data: _, error: columnError } = await supabase
+      const { error: columnError } = await supabase
         .from('quiz_results')
         .select('referred_by, referral_bonus_points')
         .limit(1);
@@ -356,7 +356,7 @@ export async function getQuizRanking(limit = 10) {
     
     try {
       // Verificar se a coluna referral_bonus_points existe
-      const { data: _, error: columnError } = await supabase
+      const { error: columnError } = await supabase
         .from('quiz_results')
         .select('referral_bonus_points')
         .limit(1);
