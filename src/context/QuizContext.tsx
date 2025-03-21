@@ -390,7 +390,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       
       const supabaseResult = await saveQuizResults(
         quizResultData, 
-        userData.referralCode // Passando como segundo parâmetro para deixar claro que é o código usado
+        usedReferralCode // Usando a variável correta aqui, não userData.referralCode
       );
       
       console.log("Resultado do Supabase:", supabaseResult);

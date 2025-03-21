@@ -98,7 +98,7 @@ export function getSupabaseClient() {
   
   console.log("Criando nova instância do Supabase");
   
-  // Credenciais do Supabase - em produção, estas devem estar em variáveis de ambiente
+  // Credenciais do Supabase - obter da Vercel ou de variáveis de ambiente locais
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   
@@ -106,12 +106,32 @@ export function getSupabaseClient() {
     urlDisponivel: !!supabaseUrl,
     keyDisponivel: !!supabaseAnonKey,
     urlTamanho: supabaseUrl.length,
-    keyTamanho: supabaseAnonKey.length
+    keyTamanho: supabaseAnonKey.length,
+    ambiente: process.env.NODE_ENV || 'não definido'
   });
   
   // Verificar se as credenciais estão disponíveis
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase credentials are missing. Please check your environment variables.');
+    console.error('Para desenvolvimento local, adicione NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY ao arquivo .env.local');
+    console.error('Para produção na Vercel, adicione estas variáveis nas configurações do projeto');
+    
+    // Tentar obter credenciais de outras fontes, se disponíveis
+    // Por exemplo, se estiver em um ambiente de produção específico
+    const alternativeUrl = process.env.SUPABASE_URL || 
+      (typeof window !== 'undefined' && (window as any).SUPABASE_URL);
+    const alternativeKey = process.env.SUPABASE_KEY || 
+      (typeof window !== 'undefined' && (window as any).SUPABASE_KEY);
+    
+    if (alternativeUrl && alternativeKey) {
+      console.log("Usando credenciais alternativas");
+      try {
+        supabaseInstance = createClient(alternativeUrl, alternativeKey);
+        return supabaseInstance;
+      } catch (error) {
+        console.error("Erro ao criar cliente Supabase com credenciais alternativas:", error);
+      }
+    }
     
     // Retornar um cliente mock que não faz nada
     console.log("Retornando cliente mock devido a credenciais ausentes");
@@ -145,7 +165,17 @@ export function getSupabaseClient() {
   try {
     // Criar e salvar o cliente Supabase
     console.log("Criando cliente Supabase com credenciais válidas");
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'quiz-anatomia-sem-medo'
+        }
+      }
+    });
     return supabaseInstance;
   } catch (error) {
     console.error("Erro ao criar cliente Supabase:", error);
@@ -319,90 +349,109 @@ export async function saveQuizResults(
     console.log("Dados formatados para inserção:", formattedData);
     
     // Inserir os dados no Supabase
-    const { data, error } = await supabase
-      .from('quiz_results')
-      .insert(formattedData)
-      .select();
-    
-    if (error) {
-      console.error("Erro ao salvar resultado do quiz:", error);
+    console.log("Tentando inserir dados no Supabase...");
+    try {
+      const { data, error } = await supabase
+        .from('quiz_results')
+        .insert(formattedData)
+        .select();
       
-      // Detalhando mais o erro quando for 409 (Conflict)
-      if (error.code === '23505' || error.code === 'P0001' || error.message.includes('duplicate key value')) {
-        console.error("Erro de duplicação detectado. Detalhes:", error.details);
+      if (error) {
+        console.error("Erro ao salvar resultado do quiz:", error);
+        console.error("Detalhes do erro:", JSON.stringify({
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }, null, 2));
+        
+        // Detalhando mais o erro quando for 409 (Conflict)
+        if (error.code === '23505' || error.code === 'P0001' || error.message.includes('duplicate key value')) {
+          console.error("Erro de duplicação detectado. Detalhes:", error.details);
+          return { 
+            success: false, 
+            error: { 
+              ...error, 
+              message: "Já existe um registro com este email ou telefone. Cada usuário pode participar apenas uma vez.",
+              code: "USER_ALREADY_EXISTS"
+            }
+          };
+        }
+        
+        // Verificar se é outro tipo de erro
+        if (error.code === '42P01') {
+          console.error("Tabela não existe:", error.details);
+          return { 
+            success: false, 
+            error: { 
+              ...error,
+              message: "Erro de configuração do banco de dados. Por favor, contate o suporte.",
+              code: "DB_CONFIG_ERROR"
+            }
+          };
+        } else if (error.code === 'PGRST116') {
+          console.error("Erro de permissão:", error.details);
+          return {
+            success: false,
+            error: {
+              ...error,
+              message: "Sem permissão para inserir dados. Verifique as políticas RLS do Supabase.",
+              code: "PERMISSION_ERROR"
+            }
+          };
+        } else if (error.code?.startsWith('5')) {
+          // Erros de servidor (5xx)
+          console.error("Erro de servidor Supabase:", error);
+          return { 
+            success: false, 
+            error: { 
+              ...error,
+              message: "Erro temporário no servidor. Por favor, tente novamente em alguns instantes.",
+              code: "SERVER_ERROR"
+            }
+          };
+        }
+        
+        // Erro genérico
         return { 
           success: false, 
-          error: { 
-            ...error, 
-            message: "Já existe um registro com este email ou telefone. Cada usuário pode participar apenas uma vez.",
-            code: "USER_ALREADY_EXISTS"
+          error: {
+            ...error,
+            message: "Erro ao salvar os resultados do quiz. Por favor, tente novamente.",
+            code: "UNKNOWN_ERROR"
           }
         };
       }
       
-      // Verificar se é outro tipo de erro
-      if (error.code === '42P01') {
-        console.error("Tabela não existe:", error.details);
-        return { 
-          success: false, 
-          error: { 
-            ...error,
-            message: "Erro de configuração do banco de dados. Por favor, contate o suporte.",
-            code: "DB_CONFIG_ERROR"
+      console.log("Resultado do Supabase:", data);
+      
+      // Finalizar
+      const finalData: Record<string, unknown> = { 
+        referralCode: newReferralCode
+      };
+      
+      // Adicionar outras propriedades se existirem dados
+      if (data && data.length > 0 && typeof data[0] === 'object') {
+        Object.keys(data[0] as Record<string, unknown>).forEach(key => {
+          if (key !== 'referral_code') {
+            (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
           }
-        };
-      } else if (error.code?.startsWith('5')) {
-        // Erros de servidor (5xx)
-        console.error("Erro de servidor Supabase:", error);
-        return { 
-          success: false, 
-          error: { 
-            ...error,
-            message: "Erro temporário no servidor. Por favor, tente novamente em alguns instantes.",
-            code: "SERVER_ERROR"
-          }
-        };
+        });
       }
       
-      // Erro genérico
+      return { success: true, data: finalData };
+    } catch (insertError) {
+      console.error("Exceção ao inserir dados:", insertError);
       return { 
         success: false, 
         error: {
-          ...error,
-          message: "Erro ao salvar os resultados do quiz. Por favor, tente novamente.",
-          code: "UNKNOWN_ERROR"
+          message: typeof insertError === 'object' && insertError !== null && 'message' in insertError 
+            ? (insertError as Error).message 
+            : "Erro desconhecido durante a inserção",
+          code: "INSERT_EXCEPTION"
         }
       };
     }
-    
-    console.log("Resultado do Supabase:", data);
-    
-    // Finalizar
-    const finalData: Record<string, unknown> = { 
-      referralCode: newReferralCode
-    };
-    
-    // Adicionar outras propriedades se existirem dados
-    if (data && data.length > 0 && typeof data[0] === 'object') {
-      Object.keys(data[0] as Record<string, unknown>).forEach(key => {
-        if (key !== 'referral_code') {
-          (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
-        }
-      });
-    }
-    
-    // Adicione o código de referência usado, se disponível
-    if (usedReferralCode) {
-      // Lógica para registrar o uso do código de referência
-      // e atribuir pontos ao usuário que compartilhou
-      
-      console.log(`Código de referência utilizado: ${usedReferralCode}`);
-      
-      // Você pode adicionar chamadas adicionais ao Supabase para registrar o uso do código
-      // e aumentar a pontuação do usuário que compartilhou o código
-    }
-    
-    return { success: true, data: finalData };
   } catch (e) {
     console.error("Erro ao salvar quiz:", e);
     return { success: false, error: e };
