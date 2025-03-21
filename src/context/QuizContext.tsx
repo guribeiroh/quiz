@@ -439,8 +439,12 @@ export function QuizProvider({ children }: QuizProviderProps) {
         const result = await sendDataToWebhook(data, quizResult);
         
         // Se houver erro de usuário já existente, propagar esse erro específico
-        if (result && !result.success && result.error && result.error.code === 'USER_ALREADY_EXISTS') {
-          throw result.error;
+        if (result && !result.success && result.error) {
+          // Verificar se o erro tem a propriedade 'code' usando verificação de tipo
+          const errorWithCode = result.error as { code?: string };
+          if (errorWithCode.code === 'USER_ALREADY_EXISTS') {
+            throw result.error;
+          }
         }
       } catch (error) {
         console.error("Erro ao enviar dados para o webhook e Supabase:", error);

@@ -45,11 +45,15 @@ export function LeadCapture() {
     } catch (error) {
       console.error('Erro ao enviar dados:', error);
       
-      // Verificar se é o erro de usuário já existente
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const typedError = error as { code?: string; message?: string };
+      // Verificar se é o erro de usuário já existente usando verificação de tipo segura
+      if (typeof error === 'object' && error !== null) {
+        // Usar type assertion para informar ao TypeScript sobre a possível propriedade code
+        const errorWithCode = error as { code?: string; message?: string };
         
-        if (typedError.code === 'USER_ALREADY_EXISTS') {
+        if (errorWithCode.code === 'USER_ALREADY_EXISTS') {
+          setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
+        } else if (errorWithCode.message && typeof errorWithCode.message === 'string' && 
+                  errorWithCode.message.includes('já completou o quiz')) {
           setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
         } else {
           setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
