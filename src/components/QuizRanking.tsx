@@ -222,16 +222,16 @@ export function QuizRanking() {
                 </li>
               </ul>
               <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 text-center">
-                <p className="text-sm text-emerald-300 font-medium">
-                  Compartilhe seu código de indicação para subir no ranking! 
-                  <span className="text-white ml-1">Não há limite para os pontos de bônus que você pode acumular.</span>
-                </p>
+                <p className="text-sm text-emerald-300">Compartilhe seu código de referência para ganhar pontos!</p>
+                <p className="text-xs text-gray-400 mt-1">Não há limite para os pontos de bônus que você pode acumular.</p>
               </div>
             </div>
           </div>
         </motion.div>
+        <div className="mt-6 text-center">
+          <a href="/" className="text-emerald-400 hover:text-emerald-300 text-sm underline">← Voltar para o Quiz</a>
+        </div>
       </div>
-      
       <Footer />
     </div>
   );
