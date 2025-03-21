@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Welcome } from '../components/Welcome';
 import { Question } from '../components/Question';
 import { LeadCapture } from '../components/LeadCapture';
@@ -9,7 +9,7 @@ import { useQuiz } from '../context/QuizContext';
 import { Footer } from '../components/Footer';
 
 export default function Home() {
-  const { isQuizStarted, isQuizFinished, isLeadCaptured, setUserData } = useQuiz();
+  const { isQuizStarted, isQuizFinished, isLeadCaptured } = useQuiz();
   
   useEffect(() => {
     // Verificar se há um código de referência na URL
