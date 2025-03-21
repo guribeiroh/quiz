@@ -152,7 +152,9 @@ export default function TesteReferral() {
             
           // Forçamos o tipo para resolver o problema de tipagem
           type QueryResponse = { data: unknown[] | null; error: unknown | null };
-          const response = await queryBuilder as unknown as Promise<QueryResponse>;
+          
+          // Importante: aguardamos a resolução da Promise antes de acessar suas propriedades
+          const response = await (queryBuilder as unknown as Promise<QueryResponse>);
           
           setDebugInfo({ 
             debugData: response.data || [],
