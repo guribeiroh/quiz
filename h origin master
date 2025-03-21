@@ -1,0 +1,5 @@
+[33mcommit 49d4d8a1176fb1990864267699149c8a0f4d3aaf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: guribeiroh <>
+Date:   Thu Mar 20 21:21:39 2025 -0300
+
+    Removendo imports não utilizados do QuizRanking.tsx

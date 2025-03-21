@@ -62,7 +62,7 @@ type SupabaseMockClient = {
   rpc: (procedure: string, params: Record<string, unknown>) => unknown;
 };
 
-function getSupabaseClient() {
+export function getSupabaseClient() {
   console.log("Chamando getSupabaseClient. Ambiente:", typeof window === 'undefined' ? 'servidor' : 'cliente');
   
   // Se estamos no servidor durante a build estática, retorna um cliente mock
@@ -302,12 +302,13 @@ export async function getQuizRanking(limit = 10) {
       correct_answers: number;
       total_questions: number;
       referral_bonus_points?: number;
+      referral_code?: string;
     }
     
     console.log("Verificando colunas disponíveis");
     
     // Determinar quais colunas selecionar com base no que está disponível
-    let columns = 'user_name, score, total_time_spent, correct_answers, total_questions';
+    let columns = 'user_name, score, total_time_spent, correct_answers, total_questions, referral_code';
     
     try {
       // Verificar se a coluna referral_bonus_points existe
@@ -350,6 +351,7 @@ export async function getQuizRanking(limit = 10) {
       correct_answers: entry.correct_answers,
       total_questions: entry.total_questions,
       referral_bonus_points: entry.referral_bonus_points || 0,
+      referral_code: entry.referral_code || '',
       total_score: parseFloat(entry.score as string || '0') + (entry.referral_bonus_points || 0)
     }));
     
