@@ -499,15 +499,18 @@ export async function getReferralCodeOwner(referralCode: string) {
       return { success: false, data: null };
     }
     
+    // Verificar explicitamente que user_name é uma string
+    const userName = typeof data.user_name === 'string' ? data.user_name : String(data.user_name);
+    
     // Extrair apenas o primeiro nome
-    const firstName = data.user_name.split(' ')[0];
+    const firstName = userName.split(' ')[0];
     
     console.log(`Dono do código encontrado: ${firstName}`);
     return { 
       success: true, 
       data: {
         id: data.id,
-        name: data.user_name,
+        name: userName,
         firstName,
         email: data.user_email
       } 
