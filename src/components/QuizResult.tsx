@@ -761,7 +761,7 @@ export function QuizResult() {
                   <p className="text-white text-center">
                     Seu código de referência será gerado quando salvar seus resultados. 
                     <br />
-                    Clique em "Ver Ranking" para completar o processo.
+                    Clique em &quot;Ver Ranking&quot; para completar o processo.
                   </p>
                 </div>
               )}
