@@ -185,7 +185,7 @@ export function getSupabaseClient() {
 
 // Função para salvar os resultados do quiz
 export async function saveQuizResults(
-  data: {
+  userData: {
     userName: string;
     userEmail: string;
     userPhone?: string | undefined;
@@ -209,16 +209,16 @@ export async function saveQuizResults(
     const { data: existingUserEmailResult } = await supabase
       .from('quiz_results')
       .select('id, user_email, user_phone, referral_code')
-      .eq('user_email', data.userEmail)
+      .eq('user_email', userData.userEmail)
       .limit(1);
     
     // Verificar se o telefone já existe (se fornecido)
     let existingUserPhone = null;
-    if (data.userPhone) {
+    if (userData.userPhone) {
       const { data: phoneResult } = await supabase
         .from('quiz_results')
         .select('id, user_email, user_phone, referral_code')
-        .eq('user_phone', data.userPhone)
+        .eq('user_phone', userData.userPhone)
         .limit(1);
       
       existingUserPhone = phoneResult;
@@ -247,8 +247,8 @@ export async function saveQuizResults(
     let referralBonusPoints = 0;
     
     // Processar código de referência se fornecido
-    if (data.referralCode) {
-      console.log("Processando código de referência:", data.referralCode);
+    if (userData.referralCode) {
+      console.log("Processando código de referência:", userData.referralCode);
       
       try {
         // Interface para tipar corretamente o resultado da consulta
@@ -262,7 +262,7 @@ export async function saveQuizResults(
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
           .select('id, user_email, referral_bonus_points')
-          .eq('referral_code', data.referralCode)
+          .eq('referral_code', userData.referralCode)
           .single();
         
         if (referrerError) {
@@ -299,15 +299,15 @@ export async function saveQuizResults(
     
     // Preparar os dados para inserção
     const formattedData: Record<string, unknown> = {
-      user_name: data.userName,
-      user_email: data.userEmail,
-      user_phone: data.userPhone || null, // Adicionando o telefone ao registro
-      score: data.score,
-      correct_answers: data.correctAnswers, 
-      total_questions: data.totalQuestions,
-      total_time_spent: data.totalTimeSpent,
-      average_time_per_question: data.averageTimePerQuestion,
-      completion_rhythm: data.completionRhythm,
+      user_name: userData.userName,
+      user_email: userData.userEmail,
+      user_phone: userData.userPhone || null, // Adicionando o telefone ao registro
+      score: userData.score,
+      correct_answers: userData.correctAnswers, 
+      total_questions: userData.totalQuestions,
+      total_time_spent: userData.totalTimeSpent,
+      average_time_per_question: userData.averageTimePerQuestion,
+      completion_rhythm: userData.completionRhythm,
       referral_code: newReferralCode,
       referred_by: referrerId,
       referral_bonus_points: referralBonusPoints
@@ -316,7 +316,7 @@ export async function saveQuizResults(
     console.log("Dados formatados para inserção:", formattedData);
     
     // Inserir os dados no Supabase
-    const { data, error } = await supabase
+    const { data: insertResult, error } = await supabase
       .from('quiz_results')
       .insert(formattedData)
       .select();
@@ -339,7 +339,7 @@ export async function saveQuizResults(
       return { success: false, error };
     }
     
-    console.log("Resultado do Supabase:", data);
+    console.log("Resultado do Supabase:", insertResult);
     
     // Finalizar
     const finalData: Record<string, unknown> = { 
@@ -347,10 +347,10 @@ export async function saveQuizResults(
     };
     
     // Adicionar outras propriedades se existirem dados
-    if (data && data.length > 0 && typeof data[0] === 'object') {
-      Object.keys(data[0] as Record<string, unknown>).forEach(key => {
+    if (insertResult && insertResult.length > 0 && typeof insertResult[0] === 'object') {
+      Object.keys(insertResult[0] as Record<string, unknown>).forEach(key => {
         if (key !== 'referral_code') {
-          (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
+          (finalData as Record<string, unknown>)[key] = (insertResult[0] as Record<string, unknown>)[key];
         }
       });
     }
