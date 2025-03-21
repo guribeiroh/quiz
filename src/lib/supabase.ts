@@ -10,6 +10,7 @@ export interface QuizResultData {
   totalTimeSpent: number;
   averageTimePerQuestion: number;
   completionRhythm?: string;
+  referralCode?: string;
   answers?: {
     questionId: string;
     selectedOption: number;
