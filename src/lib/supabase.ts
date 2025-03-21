@@ -273,6 +273,13 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       .eq('user_email', quizData.userEmail)
       .limit(1);
     
+    // Interface para tipar os dados de usuário existente
+    interface ExistingUserData {
+      id: string;
+      user_email: string;
+      referral_code?: string;
+    }
+    
     if (existingUser && existingUser.length > 0) {
       console.log("Usuário já existe, atualizando registro existente");
       
@@ -284,7 +291,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       const { data, error } = await supabase
         .from('quiz_results')
         .update(updateData)
-        .eq('id', existingUser[0].id)
+        .eq('id', (existingUser[0] as ExistingUserData).id)
         .select();
       
       if (error) {
@@ -297,7 +304,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
         success: true, 
         data: { 
           ...data[0],
-          referralCode: existingUser[0].referral_code || newReferralCode, // Usar o código existente
+          referralCode: (existingUser[0] as ExistingUserData).referral_code || newReferralCode, // Usar o código existente
           isUpdate: true
         } 
       };
