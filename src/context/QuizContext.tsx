@@ -397,7 +397,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       // Definindo interface para o tipo de retorno do Supabase
       interface QuizResultData {
         referral_code?: string;
-        [key: string]: any;
+        [key: string]: string | number | boolean | null | undefined;
       }
       
       // Armazenar o código de referência se disponível
