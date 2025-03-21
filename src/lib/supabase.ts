@@ -20,13 +20,6 @@ export interface QuizResultData {
   }[];
 }
 
-// Interface para o tipo de dado do referenciador
-interface ReferrerData {
-  id: string;
-  user_email: string;
-  referral_bonus_points?: number;
-}
-
 // Criamos uma função para inicializar o cliente Supabase (lazy initialization)
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
@@ -240,7 +233,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     }
     
     // Preparar os dados para inserção
-    let formattedData: Record<string, any> = {
+    const formattedData: Record<string, unknown> = {
       user_name: quizData.userName,
       user_email: quizData.userEmail,
       score: quizData.score,
@@ -257,7 +250,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     console.log("Dados formatados para inserção:", formattedData);
     
     // Verificar se o email já existe no banco de dados
-    const { data: existingUser, error: checkError } = await supabase
+    const { data: existingUser } = await supabase
       .from('quiz_results')
       .select('id, user_email')
       .eq('user_email', quizData.userEmail)
@@ -267,7 +260,8 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       console.log("Usuário já existe, atualizando registro existente");
       
       // Remove o referral_code da atualização para manter o original
-      const { referral_code, ...updateData } = formattedData;
+      const updateData = { ...formattedData };
+      delete updateData.referral_code;
       
       // Atualizar o registro existente
       const { data, error } = await supabase
@@ -319,7 +313,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     console.log("Resultado do Supabase:", data);
     
     // Finalizar
-    const finalData = { 
+    const finalData: Record<string, unknown> = { 
       referralCode: newReferralCode
     };
     
@@ -327,7 +321,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     if (data && data.length > 0) {
       Object.keys(data[0]).forEach(key => {
         if (key !== 'referral_code') {
-          (finalData as any)[key] = data[0][key];
+          (finalData as Record<string, unknown>)[key] = data[0][key];
         }
       });
     }
