@@ -164,10 +164,10 @@ export function QuizResult() {
   if (!quizResult || !userData) return null;
   
   const getScoreMessage = () => {
-    if (score >= 90) return "Excelente! Você demonstra um conhecimento excepcional de anatomia!";
-    if (score >= 70) return "Muito bom! Você tem um conhecimento sólido de anatomia!";
-    if (score >= 50) return "Bom trabalho! Você está no caminho certo, mas ainda há espaço para melhorar.";
-    return "Continue estudando! O e-book vai te ajudar a melhorar seus conhecimentos.";
+    if (score >= 90) return "Extraordinário! Você domina a anatomia com maestria. Continue assim!";
+    if (score >= 70) return "Muito bom! Seu conhecimento de anatomia é sólido e consistente!";
+    if (score >= 50) return "Bom trabalho! Você está no caminho certo. Um pouco mais de prática e chegará ao topo!";
+    return "Não desista! O e-book será seu aliado perfeito para conquistar o domínio da anatomia.";
   };
   
   const getScoreColor = () => {
@@ -547,44 +547,44 @@ export function QuizResult() {
                   <div className="space-y-4">
                     {score < 70 && (
                       <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-amber-500">
-                        <h4 className="font-medium text-white mb-2">Os 4 Passos para Aprender</h4>
+                        <h4 className="font-medium text-white mb-2">Os 4 Pilares do Aprendizado Anatômico</h4>
                         <p className="text-sm text-gray-300">
-                          O e-book &quot;Como estudar Anatomia Humana&quot; apresenta um método dividido em 4 etapas essenciais: 
-                          Explorar, Estudar, Revisar e Ensinar. Essas etapas trabalham diretamente com a forma como 
-                          nossa memória se consolida, transformando exposição inicial em conhecimento de longo prazo.
+                          O e-book &quot;Como estudar Anatomia Humana&quot; revela um método transformador em 4 etapas: 
+                          Explorar, Estudar, Revisar e Ensinar. Este ciclo trabalha em harmonia com seu cérebro,
+                          convertendo conhecimento superficial em domínio profundo e duradouro.
                         </p>
                       </div>
                     )}
                     
                     <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-emerald-500">
-                      <h4 className="font-medium text-white mb-2">Sua Jornada de Aprendizado</h4>
+                      <h4 className="font-medium text-white mb-2">Sua Jornada Rumo à Excelência</h4>
                       <p className="text-sm text-gray-300 mb-3">
-                        Considerando seu desempenho, recomendamos este plano baseado no método do e-book:
+                        Baseado no seu desempenho, criamos este roteiro personalizado seguindo o método do e-book:
                       </p>
                       <ol className="space-y-2 list-decimal list-inside text-sm text-gray-300">
-                        <li><strong>Explorar</strong>: Tenha o primeiro contato com o conteúdo através de aulas ou leituras iniciais.</li>
-                        <li><strong>Estudar</strong>: Use técnicas como identificação de palavras-chave ou caderno de bullet points.</li>
-                        <li><strong>Revisar</strong>: Realize revisões frequentes dos conceitos destacados.</li>
-                        <li><strong>Ensinar</strong>: Explique o conteúdo para consolidar seu aprendizado.</li>
+                        <li><strong>Explorar</strong>: Mergulhe no conteúdo através de aulas envolventes ou leituras selecionadas.</li>
+                        <li><strong>Estudar</strong>: Domine técnicas avançadas de identificação de conceitos-chave e organização visual.</li>
+                        <li><strong>Revisar</strong>: Implemente um sistema de revisão espaçada para consolidação permanente.</li>
+                        <li><strong>Ensinar</strong>: Transforme conhecimento passivo em ativo ao explicar os conceitos para outras pessoas.</li>
                       </ol>
                     </div>
                     
                     <div className="bg-gray-700 p-4 rounded-lg border-l-4 border-blue-500">
-                      <h4 className="font-medium text-white mb-2">Recursos do E-book</h4>
+                      <h4 className="font-medium text-white mb-2">Ferramentas Exclusivas no E-book</h4>
                       <ul className="space-y-1 text-sm text-gray-300">
-                        <li>• Guia para escolha dos melhores livros-texto e atlas de Anatomia</li>
-                        <li>• Técnicas de memorização e consolidação do conhecimento</li>
-                        <li>• Método para criar cadernos de bullet points eficientes</li>
-                        <li>• Aplicação da técnica Pomodoro para otimizar seu tempo de estudo</li>
+                        <li>• Guia definitivo para escolher os melhores livros-texto e atlas anatômicos</li>
+                        <li>• Técnicas avançadas de memorização baseadas em neurociência</li>
+                        <li>• Método revolucionário para criar anotações de alto impacto visual</li>
+                        <li>• Sistema Pomodoro otimizado para maximizar sua concentração e retenção</li>
                         {weaknesses.map((weakness, i) => (
-                          <li key={i}>• Estratégias específicas para melhorar em {weakness.name}</li>
+                          <li key={i}>• Estratégias específicas para dominar {weakness.name} rapidamente</li>
                         ))}
                       </ul>
                     </div>
                     
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-400 italic">
-                        &quot;O conhecimento é o maior bem que você pode adquirir!&quot;
+                        &quot;O conhecimento anatômico é o alicerce sobre o qual toda excelência clínica é construída.&quot;
                       </p>
                     </div>
                   </div>
@@ -667,27 +667,27 @@ export function QuizResult() {
             
             {/* Seção do E-book */}
             <div className="bg-gray-700/50 p-4 sm:p-6 rounded-xl border border-gray-600 mb-6 sm:mb-8">
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-emerald-400">Seu E-book está pronto!</h3>
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-emerald-400">Seu E-book Premium está pronto!</h3>
               <p className="text-sm sm:text-base text-gray-300 mb-3 sm:mb-4">
-                Parabéns por completar o quiz! Seu e-book &quot;Como estudar Anatomia Humana&quot; 
-                já está disponível para download. Este guia exclusivo contém:
+                Parabéns pela conquista! Seu e-book exclusivo &quot;Como estudar Anatomia Humana&quot; 
+                já está disponível. Este guia de elite inclui:
               </p>
               <ul className="text-xs sm:text-sm text-gray-300 space-y-2 mb-5 sm:mb-6">
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Os 4 passos essenciais para aprender: Explorar, Estudar, Revisar e Ensinar</span>
+                  <span>Os 4 pilares fundamentais do domínio anatômico: Explorar, Estudar, Revisar e Ensinar</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Guia para escolha entre livros-texto e atlas de Anatomia</span>
+                  <span>Seleção curada de recursos anatômicos: como escolher entre os melhores atlas e livros</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Técnicas de identificação de palavras-chave e caderno de bullet points</span>
+                  <span>Sistema avançado de identificação visual e organização hierárquica do conhecimento</span>
                 </li>
                 <li className="flex items-start">
                   <FaCheckCircle className="text-emerald-500 mt-1 mr-2 flex-shrink-0" />
-                  <span>Método Pomodoro para otimizar seu tempo de estudo</span>
+                  <span>Método Pomodoro customizado para estudantes de ciências médicas</span>
                 </li>
               </ul>
               
@@ -699,7 +699,7 @@ export function QuizResult() {
                   whileTap={{ scale: 0.97 }}
                 >
                   <FaDownload className="mr-2" />
-                  Baixar E-book Grátis
+                  Baixar Seu E-book Exclusivo
                 </motion.button>
                 
                 <Link href="/ranking" passHref>
@@ -723,11 +723,11 @@ export function QuizResult() {
               className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800"
             >
               <h3 className="text-xl font-bold text-white mb-3 flex items-center">
-                <FaStar className="text-yellow-400 mr-2" /> Indique um amigo e ganhe pontos extras!
+                <FaStar className="text-yellow-400 mr-2" /> Multiplique suas chances: Indique e ganhe!
               </h3>
               
               <p className="text-gray-300 mb-4">
-                Compartilhe seu código de indicação com amigos. Para cada amigo que utilizar seu código, vocês dois recebem pontos extras no ranking!
+                Compartilhe seu código exclusivo e potencialize sua posição no ranking. Cada amigo que utilizar seu código gera pontos para ambos!
               </p>
               
               {referralCode ? (
@@ -767,9 +767,9 @@ export function QuizResult() {
               )}
               
               <p className="text-sm text-gray-400">
-                Cada indicação que utilizar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para você.
+                Cada amigo que usar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para sua pontuação.
                 <br />
-                Cada vez que você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> para você.
+                Quando você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> de bônus instantâneo.
               </p>
             </motion.div>
             

@@ -148,13 +148,32 @@ export function QuizRanking() {
             <div className="mt-8 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
               <h3 className="text-lg font-semibold text-emerald-400 mb-2">Como funciona o ranking?</h3>
               <p className="text-sm text-gray-300 mb-3">
-                O ranking é baseado na pontuação obtida no quiz. Em caso de empate, o tempo de conclusão mais rápido determina a melhor posição.
+                Sua posição no ranking é determinada por uma combinação de desempenho no quiz e pontos de bônus por indicações. Supere seus colegas e conquiste o topo!
               </p>
-              <ul className="text-xs text-gray-400 space-y-1">
-                <li>• A pontuação é calculada pelo percentual de respostas corretas</li>
-                <li>• O tempo total inclui apenas o tempo efetivamente gasto em cada questão</li>
-                <li>• O ranking é atualizado em tempo real a cada conclusão do quiz</li>
+              <ul className="text-xs text-gray-400 space-y-1 mb-3">
+                <li className="flex items-start">
+                  <span className="text-emerald-400 mr-1">•</span>
+                  <span>Pontuação base: percentual de respostas corretas no quiz (máximo 100 pontos)</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-emerald-400 mr-1">•</span>
+                  <span>Bônus de indicação: ganhe <strong className="text-yellow-400">+5 pontos</strong> cada vez que alguém usar seu código</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-emerald-400 mr-1">•</span>
+                  <span>Bônus de uso: receba <strong className="text-yellow-400">+10 pontos</strong> quando você usar o código de outro participante</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-emerald-400 mr-1">•</span>
+                  <span>Desempate: em caso de pontuação igual, o menor tempo de conclusão determina a melhor posição</span>
+                </li>
               </ul>
+              <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 text-center">
+                <p className="text-sm text-emerald-300 font-medium">
+                  Compartilhe seu código de indicação para subir no ranking! 
+                  <span className="text-white ml-1">Não há limite para os pontos de bônus que você pode acumular.</span>
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
