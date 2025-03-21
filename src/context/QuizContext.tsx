@@ -5,6 +5,13 @@ import { QuizQuestion, UserAnswer, QuizResult, UserData } from '../types/quiz';
 import { quizQuestions } from '../data/questions';
 import { saveQuizResults } from '../lib/supabase';
 
+// Definindo o tipo para o resultado da operação de salvar dados
+interface SaveUserResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: unknown;
+}
+
 interface QuizContextType {
   questions: QuizQuestion[];
   currentQuestionIndex: number;
@@ -23,7 +30,7 @@ interface QuizContextType {
   selectAnswer: (selectedOption: number) => void;
   answerQuestion: (selectedOption: number) => void;
   finishQuiz: () => void;
-  saveUserData: (data: UserData) => Promise<any>;
+  saveUserData: (data: UserData) => Promise<SaveUserResult | undefined>;
   resetQuiz: () => void;
 }
 
