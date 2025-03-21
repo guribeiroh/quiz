@@ -284,7 +284,7 @@ export default function TesteReferral() {
           <div className="bg-gray-800 p-6 rounded-xl mb-8">
             <h2 className="text-xl font-semibold mb-4">Resultado</h2>
             
-            {result.data?.referralCode && (
+            {result.data && typeof result.data.referralCode === 'string' && result.data.referralCode.length > 0 && (
               <div className="bg-emerald-900/30 p-4 rounded-lg mb-4 flex justify-between items-center">
                 <div>
                   <p className="text-sm text-emerald-400">Seu código de referência:</p>
