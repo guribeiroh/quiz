@@ -315,6 +315,9 @@ export function QuizProvider({ children }: QuizProviderProps) {
       console.log("Dados do usuário:", userData);
       console.log("Resultados do quiz:", quizResult);
       
+      // Verificar se há um código de referência armazenado no localStorage
+      const usedReferralCode = typeof window !== 'undefined' ? localStorage.getItem('usedReferralCode') : null;
+      
       // Determinar o ritmo de conclusão
       let completionRhythm = 'constante';
       const answersWithTimestamp = quizResult.answers.filter(a => a.timestamp);
@@ -383,14 +386,14 @@ export function QuizProvider({ children }: QuizProviderProps) {
         totalTimeSpent: quizResult.totalTimeSpent ?? 0,
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
         completionRhythm,
-        referralCode: userData.referralCode
+        referralCode: usedReferralCode || userData.referralCode
       };
       
       console.log("Enviando para o Supabase com os parâmetros:", quizResultData);
       
       const supabaseResult = await saveQuizResults(
         quizResultData, 
-        usedReferralCode // Usando a variável correta aqui, não userData.referralCode
+        usedReferralCode
       );
       
       console.log("Resultado do Supabase:", supabaseResult);
