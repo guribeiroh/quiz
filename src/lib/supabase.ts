@@ -321,6 +321,16 @@ export async function getQuizRanking(limit = 10) {
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado para ranking:", !!supabase);
     
+    // Definindo interface para o tipo dos dados de ranking
+    interface RankingEntryData {
+      user_name: string;
+      score: string | number;
+      total_time_spent: number;
+      correct_answers: number;
+      total_questions: number;
+      referral_bonus_points?: number;
+    }
+    
     console.log("Buscando ranking com limite:", limit);
     const { data, error } = await supabase
       .from('quiz_results')
@@ -335,14 +345,14 @@ export async function getQuizRanking(limit = 10) {
     }
 
     // Mapear e calcular pontuação total com bônus
-    const rankingWithBonus = data?.map(entry => ({
+    const rankingWithBonus = data?.map((entry: RankingEntryData) => ({
       user_name: entry.user_name,
-      score: parseFloat(entry.score || '0'),
+      score: parseFloat(entry.score as string || '0'),
       total_time_spent: entry.total_time_spent,
       correct_answers: entry.correct_answers,
       total_questions: entry.total_questions,
       referral_bonus_points: entry.referral_bonus_points || 0,
-      total_score: parseFloat(entry.score || '0') + (entry.referral_bonus_points || 0)
+      total_score: parseFloat(entry.score as string || '0') + (entry.referral_bonus_points || 0)
     }));
 
     // Reordenar baseado na pontuação total (com bônus)
