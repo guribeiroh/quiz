@@ -494,8 +494,8 @@ export async function getReferralCodeOwner(referralCode: string) {
       return { success: false, error };
     }
     
-    if (!data) {
-      console.log("Nenhum usuário encontrado com este código");
+    if (!data || typeof data !== 'object' || !('user_name' in data) || !data.user_name) {
+      console.log("Nenhum usuário encontrado com este código ou dados inválidos");
       return { success: false, data: null };
     }
     
