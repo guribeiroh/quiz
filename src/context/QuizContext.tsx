@@ -430,13 +430,22 @@ export function QuizProvider({ children }: QuizProviderProps) {
   };
 
   const saveUserData = async (data: UserData) => {
-    setUserData(data);
+    // Verificar se há um código de referência usado armazenado
+    const usedReferralCode = typeof window !== 'undefined' ? localStorage.getItem('usedReferralCode') : null;
+    
+    // Adicionar o código de referência aos dados do usuário, se disponível
+    const updatedData = {
+      ...data,
+      referralCode: usedReferralCode || data.referralCode
+    };
+    
+    setUserData(updatedData);
     setIsLeadCaptured(true);
     
     // Se temos resultados, enviar dados para o webhook e Supabase
     if (quizResult) {
       try {
-        const result = await sendDataToWebhook(data, quizResult);
+        const result = await sendDataToWebhook(updatedData, quizResult);
         
         // Se houver erro de usuário já existente, propagar esse erro específico
         if (result && !result.success && result.error) {

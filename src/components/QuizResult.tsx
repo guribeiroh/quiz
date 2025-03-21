@@ -286,7 +286,7 @@ export function QuizResult() {
   // Função para compartilhar no WhatsApp
   const shareOnWhatsApp = () => {
     if (referralCode) {
-      const shareText = `Acabei de fazer o Quiz de Anatomia e quero te desafiar! Use meu código ${referralCode} para ganhar pontos extras. Faça o quiz em: https://anatomiasemmedo.vercel.app/`;
+      const shareText = `Acabei de fazer o Quiz de Anatomia e quero te desafiar! Use meu código ${referralCode} para ganhar pontos extras. Faça o quiz em: https://anatomiasemmedo.vercel.app/?ref=${referralCode}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
     }
   };

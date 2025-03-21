@@ -184,9 +184,23 @@ export function getSupabaseClient() {
 }
 
 // Função para salvar os resultados do quiz
-export async function saveQuizResults(quizData: QuizResultData, referralCode?: string) {
+export async function saveQuizResults(
+  data: {
+    userName: string;
+    userEmail: string;
+    userPhone?: string | undefined;
+    score: number;
+    correctAnswers: number;
+    totalQuestions: number;
+    totalTimeSpent: number;
+    averageTimePerQuestion: number;
+    completionRhythm: string;
+    referralCode?: string | undefined;
+  },
+  usedReferralCode?: string | null | undefined
+) {
   try {
-    console.log("Iniciando saveQuizResults com referralCode:", referralCode);
+    console.log("Iniciando saveQuizResults com referralCode:", data.referralCode);
     
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado para quiz:", !!supabase);
@@ -195,16 +209,16 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     const { data: existingUserEmail } = await supabase
       .from('quiz_results')
       .select('id, user_email, user_phone, referral_code')
-      .eq('user_email', quizData.userEmail)
+      .eq('user_email', data.userEmail)
       .limit(1);
     
     // Verificar se o telefone já existe (se fornecido)
     let existingUserPhone = null;
-    if (quizData.userPhone) {
+    if (data.userPhone) {
       const { data: phoneResult } = await supabase
         .from('quiz_results')
         .select('id, user_email, user_phone, referral_code')
-        .eq('user_phone', quizData.userPhone)
+        .eq('user_phone', data.userPhone)
         .limit(1);
       
       existingUserPhone = phoneResult;
@@ -233,8 +247,8 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     let referralBonusPoints = 0;
     
     // Processar código de referência se fornecido
-    if (referralCode) {
-      console.log("Processando código de referência:", referralCode);
+    if (data.referralCode) {
+      console.log("Processando código de referência:", data.referralCode);
       
       try {
         // Interface para tipar corretamente o resultado da consulta
@@ -248,7 +262,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
           .select('id, user_email, referral_bonus_points')
-          .eq('referral_code', referralCode)
+          .eq('referral_code', data.referralCode)
           .single();
         
         if (referrerError) {
@@ -285,15 +299,15 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     
     // Preparar os dados para inserção
     const formattedData: Record<string, unknown> = {
-      user_name: quizData.userName,
-      user_email: quizData.userEmail,
-      user_phone: quizData.userPhone || null, // Adicionando o telefone ao registro
-      score: quizData.score,
-      correct_answers: quizData.correctAnswers, 
-      total_questions: quizData.totalQuestions,
-      total_time_spent: quizData.totalTimeSpent,
-      average_time_per_question: quizData.averageTimePerQuestion,
-      completion_rhythm: quizData.completionRhythm || 'constante',
+      user_name: data.userName,
+      user_email: data.userEmail,
+      user_phone: data.userPhone || null, // Adicionando o telefone ao registro
+      score: data.score,
+      correct_answers: data.correctAnswers, 
+      total_questions: data.totalQuestions,
+      total_time_spent: data.totalTimeSpent,
+      average_time_per_question: data.averageTimePerQuestion,
+      completion_rhythm: data.completionRhythm,
       referral_code: newReferralCode,
       referred_by: referrerId,
       referral_bonus_points: referralBonusPoints
@@ -339,6 +353,17 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
           (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
         }
       });
+    }
+    
+    // Adicione o código de referência usado, se disponível
+    if (usedReferralCode) {
+      // Lógica para registrar o uso do código de referência
+      // e atribuir pontos ao usuário que compartilhou
+      
+      console.log(`Código de referência utilizado: ${usedReferralCode}`);
+      
+      // Você pode adicionar chamadas adicionais ao Supabase para registrar o uso do código
+      // e aumentar a pontuação do usuário que compartilhou o código
     }
     
     return { success: true, data: finalData };
