@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 
@@ -28,13 +28,25 @@ export function LeadCapture() {
   const { quizResult, saveUserData } = useQuiz();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [autoAppliedCode, setAutoAppliedCode] = useState<string | null>(null);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       agreedToTerms: false
     }
   });
+  
+  // Verificar se existe um código de referência salvo
+  useEffect(() => {
+    const savedCode = typeof window !== 'undefined' ? localStorage.getItem('usedReferralCode') : null;
+    
+    if (savedCode) {
+      console.log('Código de referência encontrado:', savedCode);
+      setValue('referralCode', savedCode);
+      setAutoAppliedCode(savedCode);
+    }
+  }, [setValue]);
   
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
@@ -186,19 +198,32 @@ export function LeadCapture() {
               
               <div className="mt-4">
                 <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="referralCode">
-                  Código de indicação (opcional)
+                  Código de indicação {autoAppliedCode ? '(aplicado automaticamente)' : '(opcional)'}
                 </label>
-                <input
-                  id="referralCode"
-                  type="text"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base border-gray-600"
-                  placeholder="Código de indicação se você foi convidado"
-                  disabled={isSubmitting}
-                  {...register('referralCode')}
-                />
-                <p className="text-gray-400 text-xs sm:text-sm mt-1">
-                  Se um amigo indicou você, insira o código dele aqui. Você receberá pontos extras!
-                </p>
+                <div className="relative">
+                  <input
+                    id="referralCode"
+                    type="text"
+                    className={`w-full p-3 ${autoAppliedCode ? 'pr-10 bg-emerald-900/30 border-emerald-600' : 'border-gray-600'} border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base`}
+                    placeholder="Código de indicação se você foi convidado"
+                    disabled={isSubmitting || !!autoAppliedCode}
+                    {...register('referralCode')}
+                  />
+                  {autoAppliedCode && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-400">
+                      <FaLink className="text-lg" />
+                    </div>
+                  )}
+                </div>
+                {autoAppliedCode ? (
+                  <p className="text-emerald-400 text-xs sm:text-sm mt-1 flex items-center">
+                    <FaCheckCircle className="mr-1" /> Código de referência aplicado automaticamente!
+                  </p>
+                ) : (
+                  <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                    Se um amigo indicou você, insira o código dele aqui. Você receberá pontos extras!
+                  </p>
+                )}
               </div>
               
               <div className="flex items-start mt-4 sm:mt-6">
