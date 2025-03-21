@@ -1,5 +1,24 @@
 import { createClient, PostgrestError } from '@supabase/supabase-js';
 
+// Definindo a interface para os dados do resultado do quiz
+export interface QuizResultData {
+  userName: string;
+  userEmail: string;
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  totalTimeSpent: number;
+  averageTimePerQuestion: number;
+  completionRhythm?: string;
+  answers?: {
+    questionId: string;
+    selectedOption: number;
+    isCorrect: boolean;
+    timeSpent?: number;
+    timestamp?: number;
+  }[];
+}
+
 // Criamos uma função para inicializar o cliente Supabase (lazy initialization)
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
