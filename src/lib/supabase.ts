@@ -474,4 +474,46 @@ function generateUniqueCode(): string {
   const timestamp = new Date().getTime().toString(36).slice(-3);
   
   return result + timestamp;
+}
+
+// Função para buscar informações do dono de um código de referência
+export async function getReferralCodeOwner(referralCode: string) {
+  try {
+    console.log(`Buscando informações do dono do código: ${referralCode}`);
+    
+    const supabase = getSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('quiz_results')
+      .select('id, user_name, user_email')
+      .eq('referral_code', referralCode)
+      .single();
+    
+    if (error) {
+      console.error("Erro ao buscar dono do código:", error);
+      return { success: false, error };
+    }
+    
+    if (!data) {
+      console.log("Nenhum usuário encontrado com este código");
+      return { success: false, data: null };
+    }
+    
+    // Extrair apenas o primeiro nome
+    const firstName = data.user_name.split(' ')[0];
+    
+    console.log(`Dono do código encontrado: ${firstName}`);
+    return { 
+      success: true, 
+      data: {
+        id: data.id,
+        name: data.user_name,
+        firstName,
+        email: data.user_email
+      } 
+    };
+  } catch (e) {
+    console.error("Erro ao buscar informações do código:", e);
+    return { success: false, error: e };
+  }
 } 

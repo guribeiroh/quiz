@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
+import { getReferralCodeOwner } from '../lib/supabase';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -29,6 +30,8 @@ export function LeadCapture() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [autoAppliedCode, setAutoAppliedCode] = useState<string | null>(null);
+  const [referralOwnerName, setReferralOwnerName] = useState<string | null>(null);
+  const [isLoadingOwner, setIsLoadingOwner] = useState(false);
   
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -45,6 +48,23 @@ export function LeadCapture() {
       console.log('Código de referência encontrado:', savedCode);
       setValue('referralCode', savedCode);
       setAutoAppliedCode(savedCode);
+      
+      // Buscar informações do dono do código
+      const fetchOwnerInfo = async () => {
+        setIsLoadingOwner(true);
+        try {
+          const result = await getReferralCodeOwner(savedCode);
+          if (result.success && result.data && result.data.firstName) {
+            setReferralOwnerName(result.data.firstName);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar informações do dono do código:', error);
+        } finally {
+          setIsLoadingOwner(false);
+        }
+      };
+      
+      fetchOwnerInfo();
     }
   }, [setValue]);
   
@@ -216,9 +236,24 @@ export function LeadCapture() {
                   )}
                 </div>
                 {autoAppliedCode ? (
-                  <p className="text-emerald-400 text-xs sm:text-sm mt-1 flex items-center">
-                    <FaCheckCircle className="mr-1" /> Código de referência aplicado automaticamente!
-                  </p>
+                  <div className="text-emerald-400 text-xs sm:text-sm mt-1">
+                    {isLoadingOwner ? (
+                      <div className="flex items-center">
+                        <FaSpinner className="animate-spin mr-1" /> 
+                        Verificando código de referência...
+                      </div>
+                    ) : referralOwnerName ? (
+                      <div className="flex items-center">
+                        <FaCheckCircle className="mr-1" /> 
+                        <span>Você foi convidado por <span className="font-bold">{referralOwnerName}</span>! Código aplicado automaticamente.</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <FaCheckCircle className="mr-1" /> 
+                        Código de referência aplicado automaticamente!
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-400 text-xs sm:text-sm mt-1">
                     Se um amigo indicou você, insira o código dele aqui. Você receberá pontos extras!
