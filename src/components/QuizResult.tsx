@@ -321,7 +321,7 @@ export function QuizResult() {
                 <FaGift className="text-amber-800 text-lg" />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-white text-sm sm:text-base">🎁 Quer subir no ranking? Indique e ganhe!</h4>
+                <h4 className="font-bold text-white text-sm sm:text-base">Indique e ganhe!</h4>
                 <p className="text-yellow-100 text-xs sm:text-sm">
                   <span className="font-bold text-white">Cada indicação vale +5 pontos!</span>
                   <span className="block mt-1">Ao fim do mês, os 3 maiores pontuadores ganham prêmios exclusivos!</span>
@@ -801,7 +801,7 @@ export function QuizResult() {
               className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800 referral-section"
             >
               <h3 className="text-xl font-bold text-white mb-3 flex items-center">
-                <FaStar className="text-yellow-400 mr-2" /> 🎁 Quer subir no ranking? Indique e ganhe!
+                <FaStar className="text-yellow-400 mr-2" /> Indique e ganhe!
               </h3>
               
               <p className="text-gray-300 mb-4">
