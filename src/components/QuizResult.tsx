@@ -321,10 +321,10 @@ export function QuizResult() {
                 <FaGift className="text-amber-800 text-lg" />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
+                <h4 className="font-bold text-white text-sm sm:text-base">🎁 Quer subir no ranking? Indique e ganhe!</h4>
                 <p className="text-yellow-100 text-xs sm:text-sm">
-                  Ganhe <span className="font-bold text-white">+5 pontos</span> por cada indicação. 
-                  <span className="block mt-1">Quem mais pontuar indicando durante o mês, ao fim do mês sempre vamos presentear os 3 primeiros!</span>
+                  <span className="font-bold text-white">Cada indicação vale +5 pontos!</span>
+                  <span className="block mt-1">Ao fim do mês, os 3 maiores pontuadores ganham prêmios exclusivos!</span>
                 </p>
                 <motion.div 
                   animate={{ 
@@ -801,11 +801,11 @@ export function QuizResult() {
               className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800 referral-section"
             >
               <h3 className="text-xl font-bold text-white mb-3 flex items-center">
-                <FaStar className="text-yellow-400 mr-2" /> Multiplique suas chances: Indique e ganhe!
+                <FaStar className="text-yellow-400 mr-2" /> 🎁 Quer subir no ranking? Indique e ganhe!
               </h3>
               
               <p className="text-gray-300 mb-4">
-                Compartilhe seu código exclusivo e potencialize sua posição no ranking. Cada amigo que utilizar seu código gera pontos para ambos!
+                Compartilhe seu código exclusivo e potencialize sua posição no ranking. Cada indicação vale <span className="text-emerald-400 font-semibold">+5 pontos</span>!
               </p>
               
               {referralCode ? (
@@ -848,6 +848,8 @@ export function QuizResult() {
                 Cada amigo que usar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para sua pontuação.
                 <br />
                 Quando você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> de bônus instantâneo.
+                <br />
+                <span className="text-white font-medium block mt-2">Ao fim do mês, os 3 maiores pontuadores ganham prêmios exclusivos!</span>
               </p>
             </motion.div>
             
