@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaTrophy, FaMedal, FaAward, FaCertificate, FaSpinner, FaClock, FaCheckCircle, FaStar } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 
