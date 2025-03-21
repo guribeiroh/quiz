@@ -4,6 +4,7 @@ import { createClient, PostgrestError } from '@supabase/supabase-js';
 export interface QuizResultData {
   userName: string;
   userEmail: string;
+  userPhone?: string;
   score: number;
   correctAnswers: number;
   totalQuestions: number;
@@ -190,6 +191,39 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado para quiz:", !!supabase);
     
+    // Verificar se o email ou telefone já existem no banco de dados
+    const { data: existingUserEmail } = await supabase
+      .from('quiz_results')
+      .select('id, user_email, user_phone, referral_code')
+      .eq('user_email', quizData.userEmail)
+      .limit(1);
+    
+    // Verificar se o telefone já existe (se fornecido)
+    let existingUserPhone = null;
+    if (quizData.userPhone) {
+      const { data: phoneResult } = await supabase
+        .from('quiz_results')
+        .select('id, user_email, user_phone, referral_code')
+        .eq('user_phone', quizData.userPhone)
+        .limit(1);
+      
+      existingUserPhone = phoneResult;
+    }
+    
+    // Se encontramos um usuário com o mesmo email ou telefone, impedir cadastro duplicado
+    if ((existingUserEmail && existingUserEmail.length > 0) || 
+        (existingUserPhone && existingUserPhone.length > 0)) {
+      console.log("Usuário já completou o quiz anteriormente");
+      
+      return { 
+        success: false, 
+        error: { 
+          message: "Você já completou o quiz anteriormente. Cada usuário pode participar apenas uma vez.",
+          code: "USER_ALREADY_EXISTS"
+        } 
+      };
+    }
+    
     // Gerar um código de referência único para este usuário
     const newReferralCode = generateUniqueCode();
     console.log("Novo código de referência gerado:", newReferralCode);
@@ -253,6 +287,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     const formattedData: Record<string, unknown> = {
       user_name: quizData.userName,
       user_email: quizData.userEmail,
+      user_phone: quizData.userPhone || null, // Adicionando o telefone ao registro
       score: quizData.score,
       correct_answers: quizData.correctAnswers, 
       total_questions: quizData.totalQuestions,
@@ -265,50 +300,6 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     };
     
     console.log("Dados formatados para inserção:", formattedData);
-    
-    // Verificar se o email já existe no banco de dados
-    const { data: existingUser } = await supabase
-      .from('quiz_results')
-      .select('id, user_email, referral_code')
-      .eq('user_email', quizData.userEmail)
-      .limit(1);
-    
-    // Interface para tipar os dados de usuário existente
-    interface ExistingUserData {
-      id: string;
-      user_email: string;
-      referral_code?: string;
-    }
-    
-    if (existingUser && existingUser.length > 0) {
-      console.log("Usuário já existe, atualizando registro existente");
-      
-      // Remove o referral_code da atualização para manter o original
-      const updateData = { ...formattedData };
-      delete updateData.referral_code;
-      
-      // Atualizar o registro existente
-      const { data, error } = await supabase
-        .from('quiz_results')
-        .update(updateData)
-        .eq('id', (existingUser[0] as ExistingUserData).id)
-        .select();
-      
-      if (error) {
-        console.error("Erro ao atualizar registro existente:", error);
-        return { success: false, error };
-      }
-      
-      console.log("Resultado do Supabase:", data);
-      return { 
-        success: true, 
-        data: { 
-          ...(data && data[0] ? data[0] as Record<string, unknown> : {}),
-          referralCode: (existingUser[0] as ExistingUserData).referral_code || newReferralCode, // Usar o código existente
-          isUpdate: true
-        } 
-      };
-    }
     
     // Inserir os dados no Supabase
     const { data, error } = await supabase
@@ -326,7 +317,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
           success: false, 
           error: { 
             ...error, 
-            message: "Já existe um registro com este email. Use a página de teste para verificar seu código de referência existente." 
+            message: "Já existe um registro com este email ou telefone. Cada usuário pode participar apenas uma vez." 
           }
         };
       }

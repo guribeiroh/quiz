@@ -44,7 +44,22 @@ export function LeadCapture() {
       await saveUserData(data);
     } catch (error) {
       console.error('Erro ao enviar dados:', error);
-      setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
+      
+      // Verificar se é o erro de usuário já existente
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const typedError = error as { code?: string; message?: string };
+        
+        if (typedError.code === 'USER_ALREADY_EXISTS') {
+          setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
+        } else {
+          setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
+        }
+      } else if (typeof error === 'string' && error.includes('já completou o quiz')) {
+        setSubmitError('Você já participou deste quiz anteriormente. Cada pessoa só pode participar uma vez.');
+      } else {
+        setSubmitError('Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.');
+      }
+      
       setIsSubmitting(false);
     }
   };

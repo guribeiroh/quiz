@@ -371,6 +371,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       console.log("Enviando para o Supabase com os parâmetros:", {
         userName: userData.name,
         userEmail: userData.email,
+        userPhone: userData.phone, // Adicionando o telefone do usuário
         score: quizResult.score,
         correctAnswers: quizResult.correctAnswers,
         totalQuestions: quizResult.totalQuestions,
@@ -383,6 +384,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
       const supabaseResult = await saveQuizResults({
         userName: userData.name,
         userEmail: userData.email,
+        userPhone: userData.phone, // Adicionando o telefone do usuário
         score: quizResult.score,
         correctAnswers: quizResult.correctAnswers,
         totalQuestions: quizResult.totalQuestions,
@@ -393,6 +395,11 @@ export function QuizProvider({ children }: QuizProviderProps) {
       }, userData.referralCode);
       
       console.log("Resultado do Supabase:", supabaseResult);
+      
+      // Se há erro, retornar o resultado do Supabase
+      if (!supabaseResult.success) {
+        return supabaseResult;
+      }
       
       // Armazenar o código de referência se disponível
       if (supabaseResult.success && supabaseResult.data && (supabaseResult.data as Record<string, unknown>)?.referralCode) {
@@ -410,9 +417,15 @@ export function QuizProvider({ children }: QuizProviderProps) {
         console.log("Código de referência armazenado:", referralCode);
       }
       
+      return supabaseResult;
+      
     } catch (error) {
       console.error('Erro ao enviar dados:', error);
-      // Não propagar o erro para não bloquear o fluxo do usuário
+      // Retornar o erro para que possa ser tratado adequadamente
+      return { 
+        success: false, 
+        error 
+      };
     }
   };
 
@@ -423,7 +436,12 @@ export function QuizProvider({ children }: QuizProviderProps) {
     // Se temos resultados, enviar dados para o webhook e Supabase
     if (quizResult) {
       try {
-        await sendDataToWebhook(data, quizResult);
+        const result = await sendDataToWebhook(data, quizResult);
+        
+        // Se houver erro de usuário já existente, propagar esse erro específico
+        if (result && !result.success && result.error && result.error.code === 'USER_ALREADY_EXISTS') {
+          throw result.error;
+        }
       } catch (error) {
         console.error("Erro ao enviar dados para o webhook e Supabase:", error);
         // Lançar o erro para tratamento no componente
