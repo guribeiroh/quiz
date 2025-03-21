@@ -345,7 +345,7 @@ export async function getQuizRanking(limit = 10) {
     }
 
     // Mapear e calcular pontuação total com bônus
-    const rankingWithBonus = data?.map((entry: RankingEntryData) => ({
+    const rankingWithBonus = (data as RankingEntryData[] | null)?.map(entry => ({
       user_name: entry.user_name,
       score: parseFloat(entry.score as string || '0'),
       total_time_spent: entry.total_time_spent,
