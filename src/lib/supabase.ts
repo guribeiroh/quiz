@@ -200,7 +200,7 @@ export async function saveQuizResults(
   usedReferralCode?: string | null | undefined
 ) {
   try {
-    console.log("Iniciando saveQuizResults com referralCode:", data.referralCode);
+    console.log("Iniciando saveQuizResults", usedReferralCode ? `com código de referência usado: ${usedReferralCode}` : "sem código de referência");
     
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado para quiz:", !!supabase);
