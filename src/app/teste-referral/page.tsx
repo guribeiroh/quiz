@@ -143,16 +143,31 @@ export default function TesteReferral() {
         setQueryResult({ referrerData: referrerData as QueryResult['referrerData'] });
         
         // Mostrar informação de debug
-        // Aqui precisamos tratar o resultado para buscar múltiplos registros
-        const debugResponse = await supabase
-          .from('quiz_results')
-          .select('*')
-          .eq('referral_code', testReferralCode);
+        // Usamos uma abordagem mais segura em termos de tipo
+        try {
+          const queryBuilder = supabase
+            .from('quiz_results')
+            .select('*')
+            .eq('referral_code', testReferralCode);
+            
+          // Forçamos o tipo para resolver o problema de tipagem
+          type QueryResponse = { data: unknown[] | null; error: unknown | null };
+          const response = await queryBuilder as unknown as Promise<QueryResponse>;
           
-        setDebugInfo({ 
-          debugData: debugResponse.data,
-          debugError: debugResponse.error 
-        });
+          setDebugInfo({ 
+            debugData: response.data || [],
+            debugError: response.error || null
+          });
+        } catch (debugError) {
+          console.error("Erro ao buscar informações de debug:", debugError);
+          setDebugInfo({ 
+            debugData: [],
+            debugError: { 
+              message: debugError instanceof Error ? debugError.message : "Erro desconhecido", 
+              code: "INTERNAL_ERROR" 
+            }
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao consultar código de referência:", error);
