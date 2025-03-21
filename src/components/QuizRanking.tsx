@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar, FaCrown, FaInfoCircle, FaClock, FaCheck, FaGift, FaAngleDown, FaAngleUp, FaChevronDown, FaTimes } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar, FaCrown, FaInfoCircle, FaClock, FaCheck, FaGift, FaAngleDown, FaAngleUp, FaChevronDown, FaTimes, FaArrowRight } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
@@ -95,7 +95,27 @@ export function QuizRanking() {
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
-                <p className="text-yellow-100 text-xs sm:text-sm">Ganhe +5 pontos por cada indicação. Clique aqui para saber mais!</p>
+                <p className="text-yellow-100 text-xs sm:text-sm">
+                  Ganhe <span className="font-bold text-white">+5 pontos</span> por cada indicação. 
+                </p>
+                <motion.div 
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    boxShadow: [
+                      "0 1px 2px rgba(0,0,0,0.2)",
+                      "0 4px 8px rgba(0,0,0,0.3)",
+                      "0 1px 2px rgba(0,0,0,0.2)"
+                    ]
+                  }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    repeatType: "loop" 
+                  }}
+                  className="inline-flex items-center mt-2 bg-yellow-300 text-amber-800 font-bold px-3 py-1 rounded-md"
+                >
+                  Clique aqui para saber mais <FaArrowRight className="ml-1 text-xs" />
+                </motion.div>
               </div>
               <button 
                 onClick={(e) => {
