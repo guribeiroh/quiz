@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { getReferralCodeOwner } from '../lib/supabase';
