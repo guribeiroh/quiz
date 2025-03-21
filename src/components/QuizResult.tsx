@@ -324,6 +324,7 @@ export function QuizResult() {
                 <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
                 <p className="text-yellow-100 text-xs sm:text-sm">
                   Ganhe <span className="font-bold text-white">+5 pontos</span> por cada indicação. 
+                  <span className="block mt-1">Quem mais pontuar indicando durante o mês, ao fim do mês sempre vamos presentear os 3 primeiros!</span>
                 </p>
                 <motion.div 
                   animate={{ 
