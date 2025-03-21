@@ -394,9 +394,15 @@ export function QuizProvider({ children }: QuizProviderProps) {
       
       console.log("Resultado do Supabase:", supabaseResult);
       
+      // Definindo interface para o tipo de retorno do Supabase
+      interface QuizResultData {
+        referral_code?: string;
+        [key: string]: any;
+      }
+      
       // Armazenar o código de referência se disponível
-      if (supabaseResult.success && supabaseResult.data && supabaseResult.data[0]?.referral_code) {
-        localStorage.setItem('referralCode', supabaseResult.data[0].referral_code);
+      if (supabaseResult.success && supabaseResult.data && (supabaseResult.data[0] as QuizResultData)?.referral_code) {
+        localStorage.setItem('referralCode', (supabaseResult.data[0] as QuizResultData).referral_code!);
       }
       
     } catch (error) {
