@@ -15,6 +15,8 @@ type SupabaseMockClient = {
     update: (data: Record<string, unknown>) => {
       eq: (column: string, value: unknown) => {
         select: () => { data: null | unknown[]; error: null | PostgrestError }
+        data: null | unknown[]; 
+        error: null | PostgrestError;
       }
     };
     select: (columns?: string) => { 
@@ -29,6 +31,7 @@ type SupabaseMockClient = {
       }
     };
   };
+  rpc: (procedure: string, params: Record<string, unknown>) => any;
 };
 
 function getSupabaseClient() {
@@ -41,7 +44,13 @@ function getSupabaseClient() {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
         insert: () => ({ select: () => ({ data: null, error: null }) }),
-        update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
+        update: () => ({ 
+          eq: () => ({ 
+            select: () => ({ data: null, error: null }),
+            data: null,
+            error: null
+          }) 
+        }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
           order: () => ({ 
@@ -49,7 +58,8 @@ function getSupabaseClient() {
             limit: () => ({ data: [], error: null }) 
           })
         })
-      })
+      }),
+      rpc: () => null
     } as SupabaseMockClient;
   }
   
@@ -82,7 +92,13 @@ function getSupabaseClient() {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: null }) }),
         insert: () => ({ select: () => ({ data: null, error: null }) }),
-        update: () => ({ eq: () => ({ select: () => ({ data: null, error: null }) }) }),
+        update: () => ({ 
+          eq: () => ({ 
+            select: () => ({ data: null, error: null }),
+            data: null,
+            error: null
+          }) 
+        }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: null }) }),
           order: () => ({ 
@@ -90,7 +106,8 @@ function getSupabaseClient() {
             limit: () => ({ data: [], error: null }) 
           })
         })
-      })
+      }),
+      rpc: () => null
     } as SupabaseMockClient;
   }
   
@@ -111,7 +128,13 @@ function getSupabaseClient() {
       from: () => ({
         upsert: () => ({ select: () => ({ data: null, error: mockError }) }),
         insert: () => ({ select: () => ({ data: null, error: mockError }) }),
-        update: () => ({ eq: () => ({ select: () => ({ data: null, error: mockError }) }) }),
+        update: () => ({ 
+          eq: () => ({ 
+            select: () => ({ data: null, error: mockError }),
+            data: null,
+            error: mockError
+          }) 
+        }),
         select: () => ({ 
           eq: () => ({ single: () => ({ data: null, error: mockError }) }),
           order: () => ({ 
@@ -119,7 +142,8 @@ function getSupabaseClient() {
             limit: () => ({ data: [], error: mockError }) 
           })
         })
-      })
+      }),
+      rpc: () => null
     } as SupabaseMockClient;
   }
 }
