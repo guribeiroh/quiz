@@ -31,7 +31,7 @@ type SupabaseMockClient = {
       }
     };
   };
-  rpc: (procedure: string, params: Record<string, unknown>) => any;
+  rpc: (procedure: string, params: Record<string, unknown>) => unknown;
 };
 
 function getSupabaseClient() {
