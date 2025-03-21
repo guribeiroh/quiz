@@ -5,20 +5,61 @@ import { saveQuizResults } from '@/lib/supabase';
 import { getQuizRanking } from '@/lib/supabase';
 import { getSupabaseClient } from '@/lib/supabase';
 
+// Definindo tipos para evitar 'any'
+interface RankingEntry {
+  user_name: string;
+  score: number;
+  total_time_spent: number;
+  correct_answers: number;
+  total_questions: number;
+  referral_bonus_points: number;
+  referral_code: string;
+  total_score: number;
+}
+
+interface QueryResult {
+  error?: {
+    message: string;
+    code: string;
+    details?: string;
+  };
+  referrerData?: {
+    id: string;
+    user_email: string;
+    referral_bonus_points?: number;
+    referral_code?: string;
+  };
+}
+
+interface DebugInfo {
+  debugData?: unknown[];
+  debugError?: {
+    message: string;
+    code: string;
+    details?: string;
+  };
+}
+
+interface SaveResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: unknown;
+}
+
 export default function TesteReferral() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [referralCode, setReferralCode] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<SaveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [rankingData, setRankingData] = useState<any[]>([]);
+  const [rankingData, setRankingData] = useState<RankingEntry[]>([]);
   const [copySuccess, setCopySuccess] = useState('');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   
   // Para testar a consulta direta
   const [testReferralCode, setTestReferralCode] = useState('');
-  const [queryResult, setQueryResult] = useState<any>(null);
+  const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,13 +95,13 @@ export default function TesteReferral() {
     try {
       const response = await getQuizRanking(50);
       if (response.success && response.data) {
-        setRankingData(response.data);
+        setRankingData(response.data as RankingEntry[]);
       } else {
         setError("Erro ao buscar ranking");
       }
-    } catch (err) {
-      console.error("Erro ao buscar ranking:", err);
-      setError(`Erro: ${err instanceof Error ? err.message : 'Desconhecido'}`);
+    } catch (error) {
+      console.error("Erro ao buscar ranking:", error);
+      setError(`Erro: ${error instanceof Error ? error.message : 'Desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -68,13 +109,14 @@ export default function TesteReferral() {
 
   const copyReferralCode = () => {
     if (result?.data?.referralCode) {
-      navigator.clipboard.writeText(result.data.referralCode)
+      navigator.clipboard.writeText(result.data.referralCode as string)
         .then(() => {
           setCopySuccess('Código copiado!');
           setTimeout(() => setCopySuccess(''), 2000);
         })
-        .catch(err => {
+        .catch((error) => {
           setError('Erro ao copiar código');
+          console.error(error);
         });
     }
   };
@@ -98,7 +140,7 @@ export default function TesteReferral() {
       if (referrerError) {
         setQueryResult({ error: referrerError });
       } else {
-        setQueryResult({ referrerData });
+        setQueryResult({ referrerData: referrerData as QueryResult['referrerData'] });
         
         // Mostrar informação de debug
         const { data: debugData, error: debugError } = await supabase
@@ -108,9 +150,9 @@ export default function TesteReferral() {
           
         setDebugInfo({ debugData, debugError });
       }
-    } catch (e) {
-      console.error("Erro ao consultar código de referência:", e);
-      setError(`Erro: ${e instanceof Error ? e.message : 'Desconhecido'}`);
+    } catch (error) {
+      console.error("Erro ao consultar código de referência:", error);
+      setError(`Erro: ${error instanceof Error ? error.message : 'Desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -222,7 +264,7 @@ export default function TesteReferral() {
               <div className="bg-emerald-900/30 p-4 rounded-lg mb-4 flex justify-between items-center">
                 <div>
                   <p className="text-sm text-emerald-400">Seu código de referência:</p>
-                  <p className="text-xl font-mono font-bold">{result.data.referralCode}</p>
+                  <p className="text-xl font-mono font-bold">{result.data.referralCode as string}</p>
                 </div>
                 <button
                   onClick={copyReferralCode}
@@ -279,7 +321,7 @@ export default function TesteReferral() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-400">Clique em "Atualizar Ranking" para ver os dados.</p>
+            <p className="text-gray-400">Clique em &quot;Atualizar Ranking&quot; para ver os dados.</p>
           )}
         </div>
       </div>
