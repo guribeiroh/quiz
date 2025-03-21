@@ -6,13 +6,10 @@ import { Question } from '../components/Question';
 import { LeadCapture } from '../components/LeadCapture';
 import { QuizResult } from '../components/QuizResult';
 import { useQuiz } from '../context/QuizContext';
-import { Hero } from '@/components/Hero';
-import { QuizForm } from '@/components/QuizForm';
-import { Footer } from '@/components/Footer';
+import { Footer } from '../components/Footer';
 
 export default function Home() {
   const { isQuizStarted, isQuizFinished, isLeadCaptured, setUserData } = useQuiz();
-  const [showForm, setShowForm] = useState(false);
   
   useEffect(() => {
     // Verificar se há um código de referência na URL
@@ -28,22 +25,8 @@ export default function Home() {
     }
   }, []);
   
-  const handleStartClick = () => {
-    setShowForm(true);
-  };
-  
-  const handleFormSubmit = (name: string, email: string) => {
-    setUserData({ name, email });
-  };
-  
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950">
-      {showForm ? (
-        <QuizForm onSubmit={handleFormSubmit} />
-      ) : (
-        <Hero onStartClick={handleStartClick} />
-      )}
-      
       {!isQuizStarted && <Welcome />}
       
       {isQuizStarted && !isQuizFinished && <Question />}
