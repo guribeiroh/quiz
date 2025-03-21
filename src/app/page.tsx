@@ -6,7 +6,6 @@ import { Question } from '../components/Question';
 import { LeadCapture } from '../components/LeadCapture';
 import { QuizResult } from '../components/QuizResult';
 import { useQuiz } from '../context/QuizContext';
-import { Footer } from '../components/Footer';
 
 export default function Home() {
   const { isQuizStarted, isQuizFinished, isLeadCaptured } = useQuiz();
@@ -34,8 +33,6 @@ export default function Home() {
       {isQuizFinished && !isLeadCaptured && <LeadCapture />}
       
       {isQuizFinished && isLeadCaptured && <QuizResult />}
-      
-      <Footer />
     </main>
   );
 }
