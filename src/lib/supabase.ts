@@ -193,6 +193,13 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       console.log("Processando código de referência:", referralCode);
       
       try {
+        // Interface para tipar corretamente o resultado da consulta
+        interface ReferrerData {
+          id: string;
+          user_email: string;
+          referral_bonus_points?: number;
+        }
+        
         // Buscar o referenciador pelo código
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
@@ -206,13 +213,13 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
           console.log("Referenciador encontrado:", referrerData);
           
           // Definir o ID do referenciador
-          referrerId = referrerData.id;
+          referrerId = (referrerData as ReferrerData).id;
           
           // Adicionar pontos de bônus para quem usou o código (10 pontos)
           referralBonusPoints = 10;
           
           // Adicionar pontos de bônus para o referenciador (5 pontos)
-          const currentReferrerBonus = referrerData.referral_bonus_points || 0;
+          const currentReferrerBonus = (referrerData as ReferrerData).referral_bonus_points || 0;
           const newReferrerBonus = currentReferrerBonus + 5;
           
           console.log("Pontos de bônus atualizados para:", newReferrerBonus);
