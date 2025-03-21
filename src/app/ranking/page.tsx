@@ -19,6 +19,7 @@ export default function RankingPage() {
     // Mostrar o popup após 1 segundo
     const timer = setTimeout(() => {
       setShowPopup(true);
+      console.log("Popup deveria aparecer agora!");
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -36,35 +37,51 @@ export default function RankingPage() {
     }, 100);
   };
 
+  // Popup flutuante fixo que não depende da estrutura do layout
+  const renderPopup = () => {
+    if (!showPopup) return null;
+    
+    return (
+      <div 
+        className="fixed top-0 left-0 right-0 z-[9999] p-4 flex justify-center items-start" 
+        style={{ pointerEvents: "none" }}
+      >
+        <motion.div 
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          transition={{ duration: 0.3 }}
+          className="bg-gradient-to-r from-yellow-500 to-amber-600 rounded-lg shadow-xl p-4 flex items-start border border-yellow-300 max-w-md w-full mt-4"
+          style={{ pointerEvents: "auto" }}
+          onClick={handlePopupClick}
+        >
+          <div className="mr-3 bg-yellow-400 rounded-full p-2 flex-shrink-0">
+            <FaGift className="text-amber-800 text-lg" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
+            <p className="text-yellow-100 text-xs sm:text-sm">Ganhe +5 pontos por cada indicação. Clique aqui para saber mais!</p>
+          </div>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPopup(false);
+            }} 
+            className="text-yellow-200 hover:text-white p-1"
+            aria-label="Fechar aviso"
+          >
+            <FaTimes />
+          </button>
+        </motion.div>
+      </div>
+    );
+  };
+
   return (
     <>
+      {/* Renderizando o popup fora da árvore do Suspense */}
       <AnimatePresence>
-        {showPopup && (
-          <motion.div 
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-4 left-0 right-0 z-50 mx-auto max-w-md px-4"
-          >
-            <div className="bg-gradient-to-r from-yellow-500 to-amber-600 rounded-lg shadow-xl p-4 flex items-start border border-yellow-300">
-              <div className="mr-3 bg-yellow-400 rounded-full p-2 flex-shrink-0">
-                <FaGift className="text-amber-800 text-lg" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
-                <p className="text-yellow-100 text-xs sm:text-sm">Ganhe +5 pontos por cada indicação. Clique aqui para saber mais!</p>
-              </div>
-              <button 
-                onClick={() => setShowPopup(false)} 
-                className="text-yellow-200 hover:text-white p-1"
-                aria-label="Fechar aviso"
-              >
-                <FaTimes />
-              </button>
-            </div>
-          </motion.div>
-        )}
+        {renderPopup()}
       </AnimatePresence>
 
       <Suspense fallback={
@@ -110,9 +127,7 @@ export default function RankingPage() {
           </motion.div>
         </div>
       }>
-        <div className="relative" onClick={showPopup ? handlePopupClick : undefined}>
-          <QuizRanking />
-        </div>
+        <QuizRanking />
       </Suspense>
     </>
   );
