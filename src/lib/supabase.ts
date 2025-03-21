@@ -282,7 +282,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     console.log("Resultado do quiz salvo com sucesso:", data);
     
     // Abordagem alternativa para evitar problemas com o operador spread
-    let finalData: Record<string, unknown> = { referralCode: userReferralCode };
+    const finalData: Record<string, unknown> = { referralCode: userReferralCode };
     
     // Adicionar propriedades de data[0] apenas se existirem
     if (data && Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
