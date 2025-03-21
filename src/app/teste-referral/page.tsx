@@ -143,12 +143,16 @@ export default function TesteReferral() {
         setQueryResult({ referrerData: referrerData as QueryResult['referrerData'] });
         
         // Mostrar informação de debug
-        const { data: debugData, error: debugError } = await supabase
+        // Aqui precisamos tratar o resultado para buscar múltiplos registros
+        const debugResponse = await supabase
           .from('quiz_results')
           .select('*')
           .eq('referral_code', testReferralCode);
           
-        setDebugInfo({ debugData, debugError });
+        setDebugInfo({ 
+          debugData: debugResponse.data,
+          debugError: debugResponse.error 
+        });
       }
     } catch (error) {
       console.error("Erro ao consultar código de referência:", error);
