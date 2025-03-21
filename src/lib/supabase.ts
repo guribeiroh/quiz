@@ -280,9 +280,19 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     }
     
     console.log("Resultado do quiz salvo com sucesso:", data);
-    // Verificar se data é um array com pelo menos um elemento antes de usar spread
-    const resultData = data && Array.isArray(data) && data.length > 0 ? data[0] : {};
-    return { success: true, data: { ...resultData, referralCode: userReferralCode } };
+    
+    // Abordagem alternativa para evitar problemas com o operador spread
+    let finalData: Record<string, unknown> = { referralCode: userReferralCode };
+    
+    // Adicionar propriedades de data[0] apenas se existirem
+    if (data && Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
+      // Copiar as propriedades manualmente
+      Object.keys(data[0]).forEach(key => {
+        finalData[key] = (data[0] as Record<string, unknown>)[key];
+      });
+    }
+    
+    return { success: true, data: finalData };
     
   } catch (e) {
     console.error("Exceção ao salvar resultado do quiz:", e);
