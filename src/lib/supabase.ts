@@ -166,11 +166,17 @@ export async function saveQuizResults(quizData: {
         .eq('referral_code', quizData.referralCode)
         .single();
       
+      // Definindo interface para o tipo de retorno do referrer
+      interface ReferrerData {
+        id: string;
+        [key: string]: string | number | boolean | null | undefined;
+      }
+      
       if (referrerError) {
         console.log("Não foi possível encontrar o usuário indicador:", referrerError);
       } else if (referrer) {
         console.log("Usuário indicador encontrado:", referrer);
-        referrerId = referrer.id;
+        referrerId = (referrer as ReferrerData).id;
         referralBonusPoints = 10; // Pontos bônus por ter sido indicado
         
         // Dar pontos bônus para quem indicou
