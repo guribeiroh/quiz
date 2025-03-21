@@ -20,6 +20,7 @@ type SupabaseMockClient = {
       }
     };
     select: (columns?: string) => { 
+      limit: (limit: number) => { data: unknown[]; error: null | PostgrestError };
       eq: (column: string, value: unknown) => {
         single: () => { data: null | unknown; error: null | PostgrestError }
       };
@@ -52,6 +53,7 @@ function getSupabaseClient() {
           }) 
         }),
         select: () => ({ 
+          limit: () => ({ data: [], error: null }),
           eq: () => ({ single: () => ({ data: null, error: null }) }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: null }) }),
@@ -100,6 +102,7 @@ function getSupabaseClient() {
           }) 
         }),
         select: () => ({ 
+          limit: () => ({ data: [], error: null }),
           eq: () => ({ single: () => ({ data: null, error: null }) }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: null }) }),
@@ -136,6 +139,7 @@ function getSupabaseClient() {
           }) 
         }),
         select: () => ({ 
+          limit: () => ({ data: [], error: mockError }),
           eq: () => ({ single: () => ({ data: null, error: mockError }) }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: mockError }) }),
