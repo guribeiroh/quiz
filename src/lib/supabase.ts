@@ -160,7 +160,6 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     console.log("Cliente Supabase inicializado:", !!supabase);
     
     let referrerId = null;
-    let referralBonusPoints = 0;
     let userReferralCode = referralCode;
     
     // Processa código de referência, se fornecido
