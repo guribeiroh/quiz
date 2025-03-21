@@ -220,7 +220,7 @@ export async function saveQuizResults(quizData: {
     }
     
     // Dados formatados para inserção
-    const formattedData = {
+    let formattedData: Record<string, any> = {
       user_name: quizData.userName,
       user_email: quizData.userEmail,
       score: quizData.score,
@@ -228,10 +228,28 @@ export async function saveQuizResults(quizData: {
       total_questions: quizData.totalQuestions,
       total_time_spent: quizData.totalTimeSpent,
       average_time_per_question: quizData.averageTimePerQuestion,
-      completion_rhythm: quizData.completionRhythm || 'constante',
-      referred_by: referrerId,
-      referral_bonus_points: referralBonusPoints
+      completion_rhythm: quizData.completionRhythm || 'constante'
     };
+    
+    // Verificar se devemos adicionar os campos de referência (caso colunas existam)
+    try {
+      // Primeiro verificamos se as colunas existem fazendo uma consulta de teste
+      const { data: columnTest, error: columnError } = await supabase
+        .from('quiz_results')
+        .select('referred_by, referral_bonus_points')
+        .limit(1);
+        
+      // Se não houve erro, presumimos que as colunas existem
+      if (!columnError) {
+        // Adiciona os campos de referral apenas se a consulta teve sucesso
+        formattedData.referred_by = referrerId;
+        formattedData.referral_bonus_points = referralBonusPoints;
+      } else {
+        console.log("Colunas de referência não encontradas, ignorando campos de referência");
+      }
+    } catch (e) {
+      console.log("Erro ao verificar colunas de referência:", e);
+    }
     
     console.log("Dados formatados para inserção:", JSON.stringify(formattedData));
     
@@ -331,10 +349,35 @@ export async function getQuizRanking(limit = 10) {
       referral_bonus_points?: number;
     }
     
+    console.log("Verificando colunas disponíveis");
+    
+    // Determinar quais colunas selecionar com base no que está disponível
+    let columns = 'user_name, score, total_time_spent, correct_answers, total_questions';
+    
+    try {
+      // Verificar se a coluna referral_bonus_points existe
+      const { data: columnTest, error: columnError } = await supabase
+        .from('quiz_results')
+        .select('referral_bonus_points')
+        .limit(1);
+      
+      // Se não há erro, a coluna existe
+      if (!columnError) {
+        columns += ', referral_bonus_points';
+        console.log("Coluna referral_bonus_points encontrada e será incluída");
+      } else {
+        console.log("Coluna referral_bonus_points não encontrada, será ignorada");
+      }
+    } catch (e) {
+      console.log("Erro ao verificar colunas disponíveis:", e);
+    }
+    
     console.log("Buscando ranking com limite:", limit);
+    console.log("Colunas selecionadas:", columns);
+    
     const { data, error } = await supabase
       .from('quiz_results')
-      .select('user_name, score, total_time_spent, correct_answers, total_questions, referral_bonus_points')
+      .select(columns)
       .order('score', { ascending: false })
       .order('total_time_spent', { ascending: true })
       .limit(limit);
