@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar, FaCrown, FaInfoCircle, FaClock, FaCheck, FaGift, FaAngleDown, FaAngleUp, FaChevronDown, FaTimes } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
@@ -19,11 +20,20 @@ export function QuizRanking() {
   const [expandedEntry, setExpandedEntry] = useState<number | null>(null);
   const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<'score' | 'time' | 'accuracy'>('score');
+  const [showPopup, setShowPopup] = useState(false);
   
   useEffect(() => {
     // Garantir que o carregamento dos dados só aconteça no lado do cliente
     if (typeof window !== 'undefined') {
       loadRanking();
+      
+      // Mostrar o popup após 1 segundo
+      const timer = setTimeout(() => {
+        setShowPopup(true);
+        console.log("Popup deveria aparecer agora!");
+      }, 1000);
+
+      return () => clearTimeout(timer);
     }
     
     async function loadRanking() {
@@ -54,8 +64,54 @@ export function QuizRanking() {
     }
   };
   
+  const handlePopupClick = () => {
+    setShowPopup(false);
+    
+    // Scroll suave até a seção de indicação
+    setTimeout(() => {
+      const infoSection = document.querySelector(".ranking-info-section");
+      if (infoSection) {
+        infoSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-12">
+      {/* Popup flutuante de indicação */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-0 left-0 right-0 z-[9999] mx-auto max-w-md px-4 pt-4 mt-6"
+            onClick={handlePopupClick}
+          >
+            <div className="bg-gradient-to-r from-yellow-500 to-amber-600 rounded-lg shadow-xl p-4 flex items-start border border-yellow-300 cursor-pointer">
+              <div className="mr-3 bg-yellow-400 rounded-full p-2 flex-shrink-0">
+                <FaGift className="text-amber-800 text-lg" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
+                <p className="text-yellow-100 text-xs sm:text-sm">Ganhe +5 pontos por cada indicação. Clique aqui para saber mais!</p>
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPopup(false);
+                }} 
+                className="text-yellow-200 hover:text-white p-1"
+                aria-label="Fechar aviso"
+              >
+                <FaTimes />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <div className="max-w-4xl mx-auto">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
