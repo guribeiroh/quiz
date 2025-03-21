@@ -20,6 +20,13 @@ export interface QuizResultData {
   }[];
 }
 
+// Interface para o tipo de dado do referenciador
+interface ReferrerData {
+  id: string;
+  user_email: string;
+  referral_bonus_points?: number;
+}
+
 // Criamos uma função para inicializar o cliente Supabase (lazy initialization)
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
@@ -194,16 +201,17 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
         
         if (referrerError) {
           console.log("Erro ao buscar referenciador:", referrerError);
-        } else if (referrerData) {
-          console.log("Referenciador encontrado:", referrerData);
-          referrerId = referrerData.id;
+        } else if (referrerData as ReferrerData) {
+          const typedReferrerData = referrerData as ReferrerData;
+          console.log("Referenciador encontrado:", typedReferrerData);
+          referrerId = typedReferrerData.id;
           
           // Atualizar os pontos de bônus do referenciador
-          const bonusPoints = (referrerData.referral_bonus_points || 0) + 5;
+          const bonusPoints = (typedReferrerData.referral_bonus_points || 0) + 5;
           const { error: updateError } = await supabase
             .from('quiz_results')
             .update({ referral_bonus_points: bonusPoints })
-            .eq('id', referrerData.id);
+            .eq('id', typedReferrerData.id);
             
           if (updateError) {
             console.log("Erro ao atualizar pontos de bônus:", updateError);
