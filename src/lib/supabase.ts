@@ -257,7 +257,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     console.log("Dados formatados para inserção:", formattedData);
     
     // Verificar se o email já existe no banco de dados
-    const { data: existingUser, error: checkUserError } = await supabase
+    const { data: existingUser } = await supabase
       .from('quiz_results')
       .select('id, user_email, referral_code')
       .eq('user_email', quizData.userEmail)
