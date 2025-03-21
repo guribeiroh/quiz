@@ -7,7 +7,7 @@ export function RankingInfo() {
   const [expandedInfo, setExpandedInfo] = useState<boolean>(false);
   
   return (
-    <div className="mb-6 sm:mb-8 bg-gray-700/50 p-3 sm:p-4 rounded-lg border border-gray-600 transition-all duration-200 hover:border-emerald-500/30 hover:bg-gray-700/60">
+    <div className="ranking-info-section mb-6 sm:mb-8 bg-gray-700/50 p-3 sm:p-4 rounded-lg border border-gray-600 transition-all duration-200 hover:border-emerald-500/30 hover:bg-gray-700/60">
       <div className="flex items-center justify-between">
         <h3 className="text-base sm:text-lg font-semibold text-emerald-400 mb-1 sm:mb-2">Como funciona o ranking?</h3>
         <button 
