@@ -303,7 +303,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       return { 
         success: true, 
         data: { 
-          ...data[0],
+          ...(data && data[0] ? data[0] as Record<string, unknown> : {}),
           referralCode: (existingUser[0] as ExistingUserData).referral_code || newReferralCode, // Usar o código existente
           isUpdate: true
         } 
@@ -342,10 +342,10 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
     };
     
     // Adicionar outras propriedades se existirem dados
-    if (data && data.length > 0) {
-      Object.keys(data[0]).forEach(key => {
+    if (data && data.length > 0 && typeof data[0] === 'object') {
+      Object.keys(data[0] as Record<string, unknown>).forEach(key => {
         if (key !== 'referral_code') {
-          (finalData as Record<string, unknown>)[key] = data[0][key];
+          (finalData as Record<string, unknown>)[key] = (data[0] as Record<string, unknown>)[key];
         }
       });
     }
