@@ -182,16 +182,18 @@ function getSupabaseClient() {
 // Função para salvar os resultados do quiz
 export async function saveQuizResults(quizData: QuizResultData, referralCode?: string) {
   try {
-    console.log("Iniciando saveQuizResults");
+    console.log("Iniciando saveQuizResults com referralCode:", referralCode);
     const supabase = getSupabaseClient();
     console.log("Cliente Supabase inicializado:", !!supabase);
     
     let referrerId = null;
-    let userReferralCode = referralCode;
+    let referralBonusPoints = 0;
+    let userReferralCode = quizData.referralCode || referralCode;
     
     // Processa código de referência, se fornecido
     if (referralCode) {
       try {
+        console.log("Processando código de referência:", referralCode);
         // Buscar o referenciador pelo código
         const { data: referrerData, error: referrerError } = await supabase
           .from('quiz_results')
@@ -218,13 +220,16 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
           } else {
             console.log("Pontos de bônus atualizados para:", bonusPoints);
           }
+          
+          // Definir o bônus para quem usou o código
+          referralBonusPoints = 10;
         }
       } catch (e) {
         console.log("Erro ao processar código de referência:", e);
       }
     }
     
-    // Gerar um código de referência único para o usuário
+    // Gerar um código de referência único para o usuário se ainda não tiver
     if (!userReferralCode) {
       // Criar código baseado no email e timestamp
       const timestamp = new Date().getTime().toString(36);
@@ -233,7 +238,7 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       console.log("Código de referência gerado:", userReferralCode);
     }
     
-    // Dados formatados para inserção
+    // Dados formatados para inserção - incluindo SEMPRE os campos de referência
     const formattedData: Record<string, unknown> = {
       user_name: quizData.userName,
       user_email: quizData.userEmail,
@@ -243,28 +248,10 @@ export async function saveQuizResults(quizData: QuizResultData, referralCode?: s
       total_time_spent: quizData.totalTimeSpent,
       average_time_per_question: quizData.averageTimePerQuestion,
       completion_rhythm: quizData.completionRhythm || 'constante',
-      referral_code: userReferralCode  // Adicionar o código de referência
+      referral_code: userReferralCode,  // Adicionar sempre o código de referência
+      referred_by: referrerId,         // Adicionar sempre o ID do referenciador (null se não houver)
+      referral_bonus_points: referralBonusPoints  // Adicionar sempre os pontos de bônus
     };
-    
-    // Verificar se devemos adicionar os campos de referência (caso colunas existam)
-    try {
-      // Verificar se as colunas existem
-      const { error: columnError } = await supabase
-        .from('quiz_results')
-        .select('referred_by, referral_bonus_points')
-        .limit(1);
-        
-      // Se não houve erro, presumimos que as colunas existem
-      if (!columnError) {
-        // Adiciona os campos de referral apenas se a consulta teve sucesso
-        formattedData.referred_by = referrerId;
-        formattedData.referral_bonus_points = referralCode ? 10 : 0; // Bônus para quem usou código
-      } else {
-        console.log("Colunas de referência não encontradas, ignorando campos de referência");
-      }
-    } catch (e) {
-      console.log("Erro ao verificar colunas de referência:", e);
-    }
     
     console.log("Dados formatados para inserção:", JSON.stringify(formattedData));
     

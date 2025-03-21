@@ -390,7 +390,7 @@ export function QuizProvider({ children }: QuizProviderProps) {
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
         completionRhythm,
         referralCode: userData.referralCode
-      });
+      }, userData.referralCode);
       
       console.log("Resultado do Supabase:", supabaseResult);
       
