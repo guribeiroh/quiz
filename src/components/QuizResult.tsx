@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, 
-         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt, FaShare, FaCopy } from 'react-icons/fa';
+         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt, FaShare, FaCopy, FaGift, FaTimes, FaArrowRight } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import Link from 'next/link';
@@ -14,10 +14,21 @@ export function QuizResult() {
   const [activeTab, setActiveTab] = useState<'resumo' | 'categorias' | 'dicas'>('resumo');
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   
   // Efeito para rolar para o topo da página quando o componente é montado
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+  
+  useEffect(() => {
+    // Mostrar o popup após 1 segundo
+    const timer = setTimeout(() => {
+      setShowPopup(true);
+      console.log("Popup deveria aparecer agora!");
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
   
   // Efeito para carregar o código de referência do localStorage
@@ -280,8 +291,74 @@ export function QuizResult() {
     }
   };
   
+  const handlePopupClick = () => {
+    setShowPopup(false);
+    
+    // Scroll suave até a seção de indicação
+    setTimeout(() => {
+      const referralSection = document.querySelector(".referral-section");
+      if (referralSection) {
+        referralSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 px-4 py-6 sm:py-12 sm:px-6">
+      {/* Popup flutuante de indicação */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-0 left-0 right-0 z-[9999] mx-auto max-w-md px-4 pt-4 mt-6"
+            onClick={handlePopupClick}
+          >
+            <div className="bg-gradient-to-r from-yellow-500 to-amber-600 rounded-lg shadow-xl p-4 flex items-start border border-yellow-300 cursor-pointer">
+              <div className="mr-3 bg-yellow-400 rounded-full p-2 flex-shrink-0">
+                <FaGift className="text-amber-800 text-lg" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-white text-sm sm:text-base">Multiplique suas chances no ranking!</h4>
+                <p className="text-yellow-100 text-xs sm:text-sm">
+                  Ganhe <span className="font-bold text-white">+5 pontos</span> por cada indicação. 
+                </p>
+                <motion.div 
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    boxShadow: [
+                      "0 1px 2px rgba(0,0,0,0.2)",
+                      "0 4px 8px rgba(0,0,0,0.3)",
+                      "0 1px 2px rgba(0,0,0,0.2)"
+                    ]
+                  }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    repeatType: "loop" 
+                  }}
+                  className="inline-flex items-center mt-2 bg-yellow-300 text-amber-800 font-bold px-3 py-1 rounded-md"
+                >
+                  Clique aqui para saber mais <FaArrowRight className="ml-1 text-xs" />
+                </motion.div>
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPopup(false);
+                }} 
+                className="text-yellow-200 hover:text-white p-1"
+                aria-label="Fechar aviso"
+              >
+                <FaTimes />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <div className="max-w-4xl mx-auto">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -720,7 +797,7 @@ export function QuizResult() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800"
+              className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800 referral-section"
             >
               <h3 className="text-xl font-bold text-white mb-3 flex items-center">
                 <FaStar className="text-yellow-400 mr-2" /> Multiplique suas chances: Indique e ganhe!
