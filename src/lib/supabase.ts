@@ -119,9 +119,9 @@ export function getSupabaseClient() {
     // Tentar obter credenciais de outras fontes, se disponíveis
     // Por exemplo, se estiver em um ambiente de produção específico
     const alternativeUrl = process.env.SUPABASE_URL || 
-      (typeof window !== 'undefined' && (window as any).SUPABASE_URL);
+      (typeof window !== 'undefined' && (window as Window & { SUPABASE_URL?: string }).SUPABASE_URL);
     const alternativeKey = process.env.SUPABASE_KEY || 
-      (typeof window !== 'undefined' && (window as any).SUPABASE_KEY);
+      (typeof window !== 'undefined' && (window as Window & { SUPABASE_KEY?: string }).SUPABASE_KEY);
     
     if (alternativeUrl && alternativeKey) {
       console.log("Usando credenciais alternativas");
