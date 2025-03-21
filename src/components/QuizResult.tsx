@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDown, 
-         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt } from 'react-icons/fa';
+         FaBrain, FaBookMedical, FaHeartbeat, FaBone, FaFlask, FaStar, FaClock, FaRunning, FaBolt, FaShare, FaCopy } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import Link from 'next/link';
@@ -12,11 +12,21 @@ export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'resumo' | 'categorias' | 'dicas'>('resumo');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   // Efeito para rolar para o topo da página quando o componente é montado
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  
+  // Efeito para carregar o código de referência do localStorage
+  useEffect(() => {
+    const storedCode = localStorage.getItem('referralCode');
+    if (storedCode) {
+      setReferralCode(storedCode);
+    }
+  }, [userData]);
   
   // Valor padrão para quando não há resultado ainda
   const correctAnswers = quizResult?.correctAnswers ?? 0;
@@ -239,6 +249,23 @@ export function QuizResult() {
         />
       </div>
     );
+  };
+  
+  // Função para copiar o código de referência
+  const copyReferralCode = () => {
+    if (referralCode) {
+      navigator.clipboard.writeText(referralCode);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+  
+  // Função para compartilhar no WhatsApp
+  const shareOnWhatsApp = () => {
+    if (referralCode) {
+      const shareText = `Acabei de fazer o Quiz de Anatomia e quero te desafiar! Use meu código ${referralCode} para ganhar pontos extras. Faça o quiz em: https://quiz-anatomical.vercel.app/`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+    }
   };
   
   return (
@@ -675,6 +702,56 @@ export function QuizResult() {
                 </Link>
               </div>
             </div>
+            
+            {/* Seção de indicação para amigos - adicionar após a seção de download do e-book */}
+            {userData && referralCode && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800"
+              >
+                <h3 className="text-xl font-bold text-white mb-3 flex items-center">
+                  <FaStar className="text-yellow-400 mr-2" /> Indique um amigo e ganhe pontos extras!
+                </h3>
+                
+                <p className="text-gray-300 mb-4">
+                  Compartilhe seu código de indicação com amigos. Para cada amigo que utilizar seu código, vocês dois recebem pontos extras no ranking!
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400 mb-1">Seu código de indicação:</p>
+                    <div className="flex items-center">
+                      <div className="bg-gray-800 text-emerald-400 font-mono py-2 px-4 rounded-l-lg border-t border-l border-b border-gray-700 flex-1 overflow-x-auto">
+                        {referralCode}
+                      </div>
+                      <button 
+                        onClick={copyReferralCode}
+                        className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-r-lg border-t border-r border-b border-gray-700"
+                        aria-label="Copiar código de indicação"
+                      >
+                        {copySuccess ? <FaCheckCircle className="text-emerald-400" /> : <FaCopy />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={shareOnWhatsApp}
+                    className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-md"
+                  >
+                    <FaShare className="mr-2" />
+                    Compartilhar no WhatsApp
+                  </button>
+                </div>
+                
+                <p className="text-sm text-gray-400">
+                  Cada indicação que utilizar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para você.
+                  <br />
+                  Cada vez que você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> para você.
+                </p>
+              </motion.div>
+            )}
             
             <div className="text-center">
               <motion.button

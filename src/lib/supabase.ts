@@ -134,6 +134,7 @@ export async function saveQuizResults(quizData: {
   totalTimeSpent: number;
   averageTimePerQuestion: number;
   completionRhythm?: string;
+  referralCode?: string;  // Código de indicação, se houver
 }) {
   try {
     console.log("===== INÍCIO DO SAVERESULTS =====");
@@ -151,6 +152,43 @@ export async function saveQuizResults(quizData: {
     console.log("URL Supabase:", process.env.NEXT_PUBLIC_SUPABASE_URL);
     console.log("Chave Supabase disponível:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
+    // Processar código de indicação, se fornecido
+    let referrerId = null;
+    let referralBonusPoints = 0;
+    
+    if (quizData.referralCode) {
+      console.log("Código de indicação fornecido:", quizData.referralCode);
+      
+      // Buscar o usuário que indicou pelo referral_code
+      const { data: referrer, error: referrerError } = await supabase
+        .from('quiz_results')
+        .select('id')
+        .eq('referral_code', quizData.referralCode)
+        .single();
+      
+      if (referrerError) {
+        console.log("Não foi possível encontrar o usuário indicador:", referrerError);
+      } else if (referrer) {
+        console.log("Usuário indicador encontrado:", referrer);
+        referrerId = referrer.id;
+        referralBonusPoints = 10; // Pontos bônus por ter sido indicado
+        
+        // Dar pontos bônus para quem indicou
+        const { error: updateReferrerError } = await supabase
+          .from('quiz_results')
+          .update({
+            referral_bonus_points: supabase.rpc('increment', { x: 5 }) // Incrementar pontos do indicador
+          })
+          .eq('id', referrerId);
+        
+        if (updateReferrerError) {
+          console.error("Erro ao atualizar pontos do indicador:", updateReferrerError);
+        } else {
+          console.log("Pontos do indicador atualizados com sucesso");
+        }
+      }
+    }
+    
     // Dados formatados para inserção
     const formattedData = {
       user_name: quizData.userName,
@@ -160,7 +198,9 @@ export async function saveQuizResults(quizData: {
       total_questions: quizData.totalQuestions,
       total_time_spent: quizData.totalTimeSpent,
       average_time_per_question: quizData.averageTimePerQuestion,
-      completion_rhythm: quizData.completionRhythm || 'constante'
+      completion_rhythm: quizData.completionRhythm || 'constante',
+      referred_by: referrerId,
+      referral_bonus_points: referralBonusPoints
     };
     
     console.log("Dados formatados para inserção:", JSON.stringify(formattedData));
@@ -170,7 +210,7 @@ export async function saveQuizResults(quizData: {
     const { data, error } = await supabase
       .from('quiz_results')
       .insert(formattedData)
-      .select();
+      .select('*, referral_code');
     
     console.log("Resultado da operação de insert:", { data, error });
     
@@ -182,7 +222,7 @@ export async function saveQuizResults(quizData: {
         // Buscar o ID existente primeiro
         const { data: existingUser, error: searchError } = await supabase
           .from('quiz_results')
-          .select('id')
+          .select('id, referral_code')
           .eq('user_email', quizData.userEmail)
           .single();
         
@@ -196,6 +236,7 @@ export async function saveQuizResults(quizData: {
         // Definir interface para o tipo do usuário retornado
         interface QuizUserRecord {
           id: string;
+          referral_code?: string;
         }
         
         // Atualizar o registro existente
@@ -203,7 +244,7 @@ export async function saveQuizResults(quizData: {
           .from('quiz_results')
           .update(formattedData)
           .eq('id', (existingUser as QuizUserRecord).id)
-          .select();
+          .select('*, referral_code');
         
         console.log("Resultado da operação de update:", updateResult);
         
@@ -253,33 +294,41 @@ export async function getQuizRanking(limit = 10) {
     console.log("Buscando ranking com limite:", limit);
     const { data, error } = await supabase
       .from('quiz_results')
-      .select('user_name, score, total_time_spent, correct_answers, total_questions')
+      .select('user_name, score, total_time_spent, correct_answers, total_questions, referral_bonus_points')
       .order('score', { ascending: false })
       .order('total_time_spent', { ascending: true })
       .limit(limit);
 
     if (error) {
       console.error('Erro ao buscar ranking:', error);
-      
-      // Tratar o erro como PostgrestError para obter acesso às propriedades
-      const pgError = error as PostgrestError;
-      console.error('Código do erro:', pgError.code ?? 'N/A');
-      console.error('Mensagem:', pgError.message ?? 'Sem mensagem');
-      console.error('Detalhes:', pgError.details ?? 'Sem detalhes');
-      
       return { success: false, error };
     }
 
-    console.log("Ranking obtido com sucesso! Dados:", data);
-    return { success: true, data };
+    // Mapear e calcular pontuação total com bônus
+    const rankingWithBonus = data?.map(entry => ({
+      user_name: entry.user_name,
+      score: parseFloat(entry.score || '0'),
+      total_time_spent: entry.total_time_spent,
+      correct_answers: entry.correct_answers,
+      total_questions: entry.total_questions,
+      referral_bonus_points: entry.referral_bonus_points || 0,
+      total_score: parseFloat(entry.score || '0') + (entry.referral_bonus_points || 0)
+    }));
+
+    // Reordenar baseado na pontuação total (com bônus)
+    const sortedRanking = rankingWithBonus?.sort((a, b) => {
+      // Comparar por pontuação total primeiro
+      if (b.total_score !== a.total_score) {
+        return b.total_score - a.total_score;
+      }
+      // Em caso de empate, quem respondeu mais rápido fica na frente
+      return a.total_time_spent - b.total_time_spent;
+    }).slice(0, limit);
+
+    console.log("Ranking obtido com sucesso:", sortedRanking);
+    return { success: true, data: sortedRanking };
   } catch (error) {
-    console.error('Exceção ao buscar ranking:', error);
-    // Se for um erro com propriedades, mostrar detalhes
-    if (error instanceof Error) {
-      console.error('Nome do erro:', error.name);
-      console.error('Mensagem:', error.message);
-      console.error('Stack:', error.stack);
-    }
+    console.error('Exceção ao obter ranking:', error);
     return { success: false, error };
   }
 } 

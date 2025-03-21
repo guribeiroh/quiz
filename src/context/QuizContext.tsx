@@ -376,7 +376,8 @@ export function QuizProvider({ children }: QuizProviderProps) {
         totalQuestions: quizResult.totalQuestions,
         totalTimeSpent: quizResult.totalTimeSpent ?? 0,
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
-        completionRhythm
+        completionRhythm,
+        referralCode: userData.referralCode
       });
       
       const supabaseResult = await saveQuizResults({
@@ -387,10 +388,16 @@ export function QuizProvider({ children }: QuizProviderProps) {
         totalQuestions: quizResult.totalQuestions,
         totalTimeSpent: quizResult.totalTimeSpent ?? 0,
         averageTimePerQuestion: quizResult.averageTimePerQuestion ?? 0,
-        completionRhythm
+        completionRhythm,
+        referralCode: userData.referralCode
       });
       
       console.log("Resultado do Supabase:", supabaseResult);
+      
+      // Armazenar o código de referência se disponível
+      if (supabaseResult.success && supabaseResult.data && supabaseResult.data[0]?.referral_code) {
+        localStorage.setItem('referralCode', supabaseResult.data[0].referral_code);
+      }
       
     } catch (error) {
       console.error('Erro ao enviar dados:', error);

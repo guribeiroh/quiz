@@ -32,7 +32,9 @@ export interface UserData {
   name: string;
   email: string;
   phone?: string;
+  occupation?: string;
   college?: string;
   semester?: string;
+  referralCode?: string;
   agreedToTerms: boolean;
 } 

@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaTrophy, FaSpinner, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaAward, FaCertificate, FaSpinner, FaClock, FaCheckCircle, FaStar } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 
-type RankingEntry = {
+interface RankingEntry {
   user_name: string;
   score: number;
   total_time_spent: number;
   correct_answers: number;
   total_questions: number;
-};
+  referral_bonus_points?: number;
+  total_score?: number;
+}
 
 export function QuizRanking() {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,56 +89,54 @@ export function QuizRanking() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="text-left border-b border-gray-700">
-                    <tr>
-                      <th className="pb-4 text-emerald-400">Posição</th>
-                      <th className="pb-4 text-emerald-400">Nome</th>
-                      <th className="pb-4 text-emerald-400 text-center">Pontuação</th>
-                      <th className="pb-4 text-emerald-400 text-center">Acertos</th>
-                      <th className="pb-4 text-emerald-400 text-center">Tempo</th>
+                    <tr className="bg-gray-800">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Posição</th>
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
+                      <th className="px-2 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Pontuação</th>
+                      <th className="px-2 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Tempo</th>
+                      <th className="px-2 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Acertos</th>
+                      <th className="px-2 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Bônus</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700">
                     {ranking.map((entry, index) => (
-                      <tr key={index} className={index < 3 ? 'font-medium' : ''}>
-                        <td className="py-3 pr-2">
-                          <div className="flex items-center">
-                            {index === 0 && (
-                              <span className="text-yellow-400 text-xl mr-2">🥇</span>
-                            )}
-                            {index === 1 && (
-                              <span className="text-gray-300 text-xl mr-2">🥈</span>
-                            )}
-                            {index === 2 && (
-                              <span className="text-amber-600 text-xl mr-2">🥉</span>
-                            )}
-                            {index > 2 && (
-                              <span className="text-gray-500 mx-2">{index + 1}</span>
-                            )}
+                      <tr key={index} className={index < 3 ? 'bg-gray-800/50' : 'bg-gray-900'}>
+                        <td className="px-2 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full 
+                            {index === 0 ? 'bg-yellow-500/20 text-yellow-500' : 
+                             index === 1 ? 'bg-gray-400/20 text-gray-400' : 
+                             index === 2 ? 'bg-amber-800/20 text-amber-800' : 'bg-gray-700/20 text-gray-400'}"
+                          >
+                            {index === 0 ? <FaTrophy /> : 
+                             index === 1 ? <FaMedal /> : 
+                             index === 2 ? <FaAward /> : 
+                             <span className="text-sm">{index + 1}</span>}
                           </div>
                         </td>
-                        <td className="py-3 text-white">
+                        <td className="px-2 py-4 whitespace-nowrap text-sm text-white truncate max-w-[120px] sm:max-w-none">
                           {entry.user_name}
                         </td>
-                        <td className="py-3 text-center">
-                          <span className={`px-2 py-1 rounded ${
-                            entry.score >= 80 ? 'bg-emerald-900/50 text-emerald-300' : 
-                            entry.score >= 60 ? 'bg-blue-900/50 text-blue-300' : 
-                            'bg-amber-900/50 text-amber-300'
-                          }`}>
-                            {entry.score.toFixed(0)}%
-                          </span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <div className="flex items-center justify-center">
-                            <FaCheckCircle className="text-emerald-500 mr-1" />
-                            <span className="text-white">{entry.correct_answers}/{entry.total_questions}</span>
+                        <td className="px-2 py-4 whitespace-nowrap text-sm text-right">
+                          <div className="flex items-center justify-end">
+                            <span className="text-emerald-500 font-semibold">{entry.total_score?.toFixed(1) || entry.score.toFixed(1)}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-center">
-                          <div className="flex items-center justify-center">
-                            <FaClock className="text-gray-400 mr-1" />
-                            <span className="text-white">{formatTime(entry.total_time_spent)}</span>
-                          </div>
+                        <td className="px-2 py-4 whitespace-nowrap text-sm text-right text-gray-300 hidden sm:table-cell">
+                          {formatTime(entry.total_time_spent)}
+                        </td>
+                        <td className="px-2 py-4 whitespace-nowrap text-sm text-right text-gray-300 hidden sm:table-cell">
+                          <span className="text-white">{entry.correct_answers}</span>
+                          <span className="text-gray-500">/{entry.total_questions}</span>
+                        </td>
+                        <td className="px-2 py-4 whitespace-nowrap text-sm text-right text-gray-300 hidden md:table-cell">
+                          {entry.referral_bonus_points ? (
+                            <div className="flex items-center justify-end">
+                              <FaStar className="text-yellow-400 mr-1" />
+                              <span className="text-yellow-400">+{entry.referral_bonus_points}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}

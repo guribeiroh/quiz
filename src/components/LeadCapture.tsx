@@ -16,6 +16,7 @@ const formSchema = z.object({
   occupation: z.enum(['estudante_medicina', 'estudante_saude', 'profissional_saude', 'medico'], {
     errorMap: () => ({ message: 'Selecione uma opção' })
   }),
+  referralCode: z.string().optional(),
   agreedToTerms: z.boolean().refine(val => val === true, {
     message: 'Você precisa concordar com os termos'
   })
@@ -162,6 +163,23 @@ export function LeadCapture() {
                 {errors.occupation && (
                   <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.occupation.message}</p>
                 )}
+              </div>
+              
+              <div className="mt-4">
+                <label className="block text-gray-300 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="referralCode">
+                  Código de indicação (opcional)
+                </label>
+                <input
+                  id="referralCode"
+                  type="text"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-700 text-white text-sm sm:text-base border-gray-600"
+                  placeholder="Código de indicação se você foi convidado"
+                  disabled={isSubmitting}
+                  {...register('referralCode')}
+                />
+                <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                  Se um amigo indicou você, insira o código dele aqui. Você receberá pontos extras!
+                </p>
               </div>
               
               <div className="flex items-start mt-4 sm:mt-6">
