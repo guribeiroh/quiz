@@ -494,13 +494,23 @@ export async function getReferralCodeOwner(referralCode: string) {
       return { success: false, error };
     }
     
-    if (!data || typeof data !== 'object' || !('user_name' in data) || !data.user_name) {
+    if (!data || typeof data !== 'object') {
       console.log("Nenhum usuário encontrado com este código ou dados inválidos");
+      return { success: false, data: null };
+    }
+    
+    // Verificamos todas as propriedades necessárias
+    if (!('user_name' in data) || !data.user_name || 
+        !('id' in data) || !data.id || 
+        !('user_email' in data)) {
+      console.log("Dados do usuário incompletos");
       return { success: false, data: null };
     }
     
     // Verificar explicitamente que user_name é uma string
     const userName = typeof data.user_name === 'string' ? data.user_name : String(data.user_name);
+    const userId = data.id;
+    const userEmail = data.user_email || '';
     
     // Extrair apenas o primeiro nome
     const firstName = userName.split(' ')[0];
@@ -509,10 +519,10 @@ export async function getReferralCodeOwner(referralCode: string) {
     return { 
       success: true, 
       data: {
-        id: data.id,
+        id: userId,
         name: userName,
         firstName,
-        email: data.user_email
+        email: userEmail
       } 
     };
   } catch (e) {
