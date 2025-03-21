@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from 'framer-motion';
 import { FaTrophy } from 'react-icons/fa';
 
 export function RankingHeader() {
