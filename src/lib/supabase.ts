@@ -42,7 +42,8 @@ type SupabaseMockClient = {
     select: (columns?: string) => { 
       limit: (limit: number) => { data: unknown[]; error: null | PostgrestError };
       eq: (column: string, value: unknown) => {
-        single: () => { data: null | unknown; error: null | PostgrestError }
+        single: () => { data: null | unknown; error: null | PostgrestError };
+        limit: (limit: number) => { data: unknown[]; error: null | PostgrestError };
       };
       order: (column: string, options?: Record<string, unknown>) => { 
         order: (column: string, options?: Record<string, unknown>) => {
@@ -74,7 +75,10 @@ export function getSupabaseClient() {
         }),
         select: () => ({ 
           limit: () => ({ data: [], error: null }),
-          eq: () => ({ single: () => ({ data: null, error: null }) }),
+          eq: () => ({ 
+            single: () => ({ data: null, error: null }),
+            limit: () => ({ data: [], error: null })
+          }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: null }) }),
             limit: () => ({ data: [], error: null }) 
@@ -123,7 +127,10 @@ export function getSupabaseClient() {
         }),
         select: () => ({ 
           limit: () => ({ data: [], error: null }),
-          eq: () => ({ single: () => ({ data: null, error: null }) }),
+          eq: () => ({ 
+            single: () => ({ data: null, error: null }),
+            limit: () => ({ data: [], error: null })
+          }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: null }) }),
             limit: () => ({ data: [], error: null }) 
@@ -160,7 +167,10 @@ export function getSupabaseClient() {
         }),
         select: () => ({ 
           limit: () => ({ data: [], error: mockError }),
-          eq: () => ({ single: () => ({ data: null, error: mockError }) }),
+          eq: () => ({ 
+            single: () => ({ data: null, error: mockError }),
+            limit: () => ({ data: [], error: mockError })
+          }),
           order: () => ({ 
             order: () => ({ limit: () => ({ data: [], error: mockError }) }),
             limit: () => ({ data: [], error: mockError }) 
