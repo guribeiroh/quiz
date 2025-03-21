@@ -25,8 +25,20 @@ export function QuizResult() {
     const storedCode = localStorage.getItem('referralCode');
     if (storedCode) {
       setReferralCode(storedCode);
+    } else if (quizResult && quizResult.referralCode) {
+      // Se o código já foi gerado e retornado pela API
+      setReferralCode(quizResult.referralCode);
+      // Salvar para uso futuro
+      localStorage.setItem('referralCode', quizResult.referralCode);
+      console.log("Código obtido do quizResult:", quizResult.referralCode);
     }
-  }, [userData]);
+  }, [userData, quizResult]);
+  
+  // Adicionar um console.log para debug
+  useEffect(() => {
+    console.log("Estado do referralCode:", referralCode);
+    console.log("Código armazenado:", localStorage.getItem('referralCode'));
+  }, [referralCode]);
   
   // Valor padrão para quando não há resultado ainda
   const correctAnswers = quizResult?.correctAnswers ?? 0;
@@ -703,22 +715,22 @@ export function QuizResult() {
               </div>
             </div>
             
-            {/* Seção de indicação para amigos - adicionar após a seção de download do e-book */}
-            {userData && referralCode && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800"
-              >
-                <h3 className="text-xl font-bold text-white mb-3 flex items-center">
-                  <FaStar className="text-yellow-400 mr-2" /> Indique um amigo e ganhe pontos extras!
-                </h3>
-                
-                <p className="text-gray-300 mb-4">
-                  Compartilhe seu código de indicação com amigos. Para cada amigo que utilizar seu código, vocês dois recebem pontos extras no ranking!
-                </p>
-                
+            {/* Seção de indicação para amigos - modificada para sempre aparecer */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mt-8 bg-emerald-900/20 p-5 rounded-xl border border-emerald-800"
+            >
+              <h3 className="text-xl font-bold text-white mb-3 flex items-center">
+                <FaStar className="text-yellow-400 mr-2" /> Indique um amigo e ganhe pontos extras!
+              </h3>
+              
+              <p className="text-gray-300 mb-4">
+                Compartilhe seu código de indicação com amigos. Para cada amigo que utilizar seu código, vocês dois recebem pontos extras no ranking!
+              </p>
+              
+              {referralCode ? (
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex-1">
                     <p className="text-sm text-gray-400 mb-1">Seu código de indicação:</p>
@@ -744,14 +756,22 @@ export function QuizResult() {
                     Compartilhar no WhatsApp
                   </button>
                 </div>
-                
-                <p className="text-sm text-gray-400">
-                  Cada indicação que utilizar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para você.
-                  <br />
-                  Cada vez que você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> para você.
-                </p>
-              </motion.div>
-            )}
+              ) : (
+                <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                  <p className="text-white text-center">
+                    Seu código de referência será gerado quando salvar seus resultados. 
+                    <br />
+                    Clique em "Ver Ranking" para completar o processo.
+                  </p>
+                </div>
+              )}
+              
+              <p className="text-sm text-gray-400">
+                Cada indicação que utilizar seu código: <span className="text-emerald-400 font-semibold">+5 pontos</span> para você.
+                <br />
+                Cada vez que você usar um código: <span className="text-emerald-400 font-semibold">+10 pontos</span> para você.
+              </p>
+            </motion.div>
             
             <div className="text-center">
               <motion.button

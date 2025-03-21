@@ -26,6 +26,7 @@ export interface QuizResult {
   startTime?: number;
   endTime?: number;
   averageTimePerQuestion?: number;
+  referralCode?: string;
 }
 
 export interface UserData {

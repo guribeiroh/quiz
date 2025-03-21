@@ -394,15 +394,20 @@ export function QuizProvider({ children }: QuizProviderProps) {
       
       console.log("Resultado do Supabase:", supabaseResult);
       
-      // Definindo interface para o tipo de retorno do Supabase
-      interface QuizResultData {
-        referral_code?: string;
-        [key: string]: string | number | boolean | null | undefined;
-      }
-      
       // Armazenar o código de referência se disponível
-      if (supabaseResult.success && supabaseResult.data && (supabaseResult.data[0] as QuizResultData)?.referral_code) {
-        localStorage.setItem('referralCode', (supabaseResult.data[0] as QuizResultData).referral_code!);
+      if (supabaseResult.success && supabaseResult.data && (supabaseResult.data as Record<string, unknown>)?.referralCode) {
+        const referralCode = (supabaseResult.data as Record<string, unknown>).referralCode as string;
+        localStorage.setItem('referralCode', referralCode);
+        
+        // Atualizar o quizResult com o código de referência
+        if (quizResult) {
+          setQuizResult({
+            ...quizResult,
+            referralCode: referralCode
+          });
+        }
+        
+        console.log("Código de referência armazenado:", referralCode);
       }
       
     } catch (error) {
