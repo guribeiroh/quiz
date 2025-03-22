@@ -21,6 +21,7 @@ export function QuizRanking() {
   const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<'score' | 'time' | 'accuracy'>('score');
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [showPhoneForm, setShowPhoneForm] = useState(false);
   const [userPhone, setUserPhone] = useState('');
@@ -37,6 +38,12 @@ export function QuizRanking() {
       const savedCode = localStorage.getItem('referralCode');
       if (savedCode) {
         setReferralCode(savedCode);
+      }
+      
+      // Verificar se há um nome de usuário salvo no localStorage
+      const savedName = localStorage.getItem('userName');
+      if (savedName) {
+        setUserName(savedName);
       }
     }
     
@@ -97,6 +104,15 @@ export function QuizRanking() {
         setReferralCode(mockCode);
         // Salvar no localStorage para uso futuro
         localStorage.setItem('referralCode', mockCode);
+        
+        // Caso não tenha um nome salvo, solicitaríamos o nome
+        if (!userName) {
+          // Em um caso real, buscaríamos o nome associado ao telefone do banco de dados
+          const mockName = userName || "Aluno"; // Usar um nome padrão se não tiver
+          setUserName(mockName);
+          localStorage.setItem('userName', mockName);
+        }
+        
         setShowPhoneForm(false);
       } else {
         setPhoneError('Não encontramos um código associado a este telefone.');
@@ -180,6 +196,11 @@ export function QuizRanking() {
                 </div>
                 
                 <div className="text-xs text-gray-400 bg-gray-900/50 p-3 rounded-lg">
+                  {userName && (
+                    <div className="mb-2 pb-2 border-b border-gray-700">
+                      <span className="text-gray-300">Link de indicação de:</span> <span className="text-blue-300 font-medium">{userName}</span>
+                    </div>
+                  )}
                   Seu código de indicação: <span className="bg-gray-800 px-2 py-1 rounded ml-1 text-blue-300 font-mono">{referralCode}</span>
                 </div>
               </div>
@@ -189,7 +210,7 @@ export function QuizRanking() {
                   Digite seu número de telefone para buscarmos seu código de indicação:
                 </p>
                 
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
+                <div className="flex flex-col gap-3 mb-4">
                   <div className="relative flex-grow">
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                       <FaPhone />
@@ -202,10 +223,23 @@ export function QuizRanking() {
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
+                  
+                  <div className="relative flex-grow">
+                    <input 
+                      type="text" 
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="Seu nome (opcional)"
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 px-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
                   <button 
                     onClick={() => fetchReferralCodeByPhone(userPhone)}
                     disabled={isSearching || !userPhone}
-                    className={`${!userPhone ? 'bg-gray-600 cursor-not-allowed' : isSearching ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center`}
+                    className={`${!userPhone ? 'bg-gray-600 cursor-not-allowed' : isSearching ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center w-full sm:w-auto`}
                   >
                     {isSearching ? (
                       <>
