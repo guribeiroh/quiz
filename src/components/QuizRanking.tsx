@@ -80,11 +80,12 @@ export function QuizRanking() {
     // Remove todos os caracteres não numéricos
     const numbersOnly = phone.replace(/\D/g, '');
     
-    // Verifica se o número tem um comprimento razoável (9-11 dígitos para Brasil)
+    // Verifica se o número tem um comprimento razoável
     if (numbersOnly.length < 9 || numbersOnly.length > 11) {
       return null;
     }
     
+    console.log('Número normalizado para busca:', numbersOnly);
     return numbersOnly;
   };
   

@@ -619,7 +619,9 @@ export async function getReferralCodeOwner(referralCode: string) {
 // Função para buscar o código de referência pelo número de telefone
 export async function getReferralCodeByPhone(phone: string) {
   try {
+    console.log('Iniciando busca de código por telefone:', phone);
     const supabase = getSupabaseClient();
+    console.log('Cliente Supabase obtido');
     
     // Interface para representar o resultado da consulta
     interface QuizResultRow {
@@ -630,11 +632,18 @@ export async function getReferralCodeByPhone(phone: string) {
     
     // Busca usuário pelo telefone no banco
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log('Executando consulta para encontrar código com telefone:', phone);
     const { data, error } = await (supabase as any)
       .from('quiz_results')
       .select('user_name, referral_code, user_phone')
       .eq('user_phone', phone)
       .limit(1);
+    
+    console.log('Resultado da consulta:', { 
+      encontrado: data && data.length > 0, 
+      quantidadeDeRegistros: data ? data.length : 0,
+      erro: error ? error.message : null 
+    });
     
     if (error) {
       console.error('Erro ao buscar código de referência:', error);
@@ -646,6 +655,7 @@ export async function getReferralCodeByPhone(phone: string) {
     
     if (data && data.length > 0) {
       const result = data[0] as QuizResultRow;
+      console.log('Código encontrado:', result.referral_code, 'para usuário:', result.user_name);
       return { 
         success: true, 
         data: {
@@ -654,6 +664,7 @@ export async function getReferralCodeByPhone(phone: string) {
         } 
       };
     } else {
+      console.log('Nenhum código encontrado para o telefone:', phone);
       return { 
         success: false, 
         error: 'Não encontramos um código associado a este telefone.'
