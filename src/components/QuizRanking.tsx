@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaSpinner, FaCheck, FaCopy, FaShareAlt, FaPhone, FaLink } from 'react-icons/fa';
+import { FaSpinner, FaCheck, FaCopy, FaShareAlt, FaPhone, FaLink, FaAngleUp, FaAngleDown } from 'react-icons/fa';
 import { getQuizRanking, getReferralCodeByPhone } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
@@ -27,6 +27,7 @@ export function QuizRanking() {
   const [userPhone, setUserPhone] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [showSharePanel, setShowSharePanel] = useState(false);
   const copyLinkRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
@@ -156,7 +157,10 @@ export function QuizRanking() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="bg-gray-800 rounded-xl mb-6 shadow-xl overflow-hidden border border-gray-700"
         >
-          <div className="bg-gradient-to-r from-blue-800 to-blue-600 p-4 sm:p-5 text-white flex items-center justify-between">
+          <div 
+            className="bg-gradient-to-r from-blue-800 to-blue-600 p-4 sm:p-5 text-white flex items-center justify-between cursor-pointer"
+            onClick={() => setShowSharePanel(!showSharePanel)}
+          >
             <div className="flex items-center">
               <div className="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center shadow-lg mr-3">
                 <FaShareAlt className="text-blue-200 text-xl" />
@@ -166,132 +170,141 @@ export function QuizRanking() {
                 <p className="text-sm text-blue-100">Convide amigos e suba no ranking!</p>
               </div>
             </div>
+            <div className="text-white">
+              {showSharePanel ? (
+                <FaAngleUp size={24} />
+              ) : (
+                <FaAngleDown size={24} />
+              )}
+            </div>
           </div>
           
-          <div className="p-4 sm:p-6">
-            {referralCode ? (
-              <div>
-                <p className="text-gray-300 text-sm mb-4">
-                  Compartilhe seu link de indicação. Você ganha <span className="text-yellow-400 font-medium">+5 pontos</span> cada vez que alguém usar seu código!
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
-                  <div className="relative flex-grow">
-                    <input 
-                      ref={copyLinkRef}
-                      type="text" 
-                      readOnly 
-                      value={`${typeof window !== 'undefined' ? window.location.origin : ''}/quiz?ref=${referralCode}`}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 px-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
-                      <FaLink />
+          {showSharePanel && (
+            <div className="p-4 sm:p-6">
+              {referralCode ? (
+                <div>
+                  <p className="text-gray-300 text-sm mb-4">
+                    Compartilhe seu link de indicação. Você ganha <span className="text-yellow-400 font-medium">+5 pontos</span> cada vez que alguém usar seu código!
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
+                    <div className="relative flex-grow">
+                      <input 
+                        ref={copyLinkRef}
+                        type="text" 
+                        readOnly 
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/quiz?ref=${referralCode}`}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 px-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
+                        <FaLink />
+                      </div>
                     </div>
-                  </div>
-                  <button 
-                    onClick={copyReferralLink}
-                    className={`${copySuccess ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center`}
-                  >
-                    {copySuccess ? (
-                      <>
-                        <FaCheck className="mr-2" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <FaCopy className="mr-2" />
-                        Copiar Link
-                      </>
-                    )}
-                  </button>
-                </div>
-                
-                <div className="text-xs text-gray-400 bg-gray-900/50 p-3 rounded-lg">
-                  {userName && (
-                    <div className="mb-2 pb-2 border-b border-gray-700">
-                      <span className="text-gray-300">Link de indicação de:</span> <span className="text-blue-300 font-medium">{userName}</span>
-                    </div>
-                  )}
-                  Seu código de indicação: <span className="bg-gray-800 px-2 py-1 rounded ml-1 text-blue-300 font-mono">{referralCode}</span>
-                </div>
-              </div>
-            ) : showPhoneForm ? (
-              <div>
-                <p className="text-gray-300 text-sm mb-4">
-                  Digite seu número de telefone para buscarmos seu código de indicação:
-                </p>
-                
-                <div className="flex flex-col gap-3 mb-4">
-                  <div className="relative flex-grow">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      <FaPhone />
-                    </div>
-                    <input 
-                      type="tel" 
-                      value={userPhone}
-                      onChange={(e) => setUserPhone(e.target.value)}
-                      placeholder="Digite seu telefone (qualquer formato)"
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <button 
+                      onClick={copyReferralLink}
+                      className={`${copySuccess ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center`}
+                    >
+                      {copySuccess ? (
+                        <>
+                          <FaCheck className="mr-2" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <FaCopy className="mr-2" />
+                          Copiar Link
+                        </>
+                      )}
+                    </button>
                   </div>
                   
-                  <div className="relative flex-grow">
-                    <input 
-                      type="text" 
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Seu nome (opcional)"
-                      className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 px-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
-                  <button 
-                    onClick={() => fetchReferralCodeByPhone(userPhone)}
-                    disabled={isSearching || !userPhone}
-                    className={`${!userPhone ? 'bg-gray-600 cursor-not-allowed' : isSearching ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center w-full sm:w-auto`}
-                  >
-                    {isSearching ? (
-                      <>
-                        <FaSpinner className="animate-spin mr-2" />
-                        Buscando...
-                      </>
-                    ) : (
-                      'Buscar Código'
+                  <div className="text-xs text-gray-400 bg-gray-900/50 p-3 rounded-lg">
+                    {userName && (
+                      <div className="mb-2 pb-2 border-b border-gray-700">
+                        <span className="text-gray-300">Link de indicação de:</span> <span className="text-blue-300 font-medium">{userName}</span>
+                      </div>
                     )}
-                  </button>
-                </div>
-                
-                {phoneError && (
-                  <div className="text-sm text-red-300 bg-red-900/30 p-3 rounded-lg border border-red-800">
-                    {phoneError}
+                    Seu código de indicação: <span className="bg-gray-800 px-2 py-1 rounded ml-1 text-blue-300 font-mono">{referralCode}</span>
                   </div>
-                )}
-                
-                <div className="mt-3">
+                </div>
+              ) : showPhoneForm ? (
+                <div>
+                  <p className="text-gray-300 text-sm mb-4">
+                    Digite seu número de telefone para buscarmos seu código de indicação:
+                  </p>
+                  
+                  <div className="flex flex-col gap-3 mb-4">
+                    <div className="relative flex-grow">
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <FaPhone />
+                      </div>
+                      <input 
+                        type="tel" 
+                        value={userPhone}
+                        onChange={(e) => setUserPhone(e.target.value)}
+                        placeholder="Digite seu telefone (qualquer formato)"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div className="relative flex-grow">
+                      <input 
+                        type="text" 
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Seu nome (opcional)"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 px-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-stretch mb-4">
+                    <button 
+                      onClick={() => fetchReferralCodeByPhone(userPhone)}
+                      disabled={isSearching || !userPhone}
+                      className={`${!userPhone ? 'bg-gray-600 cursor-not-allowed' : isSearching ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-3 sm:py-0 rounded-lg font-medium transition-colors flex items-center justify-center w-full sm:w-auto`}
+                    >
+                      {isSearching ? (
+                        <>
+                          <FaSpinner className="animate-spin mr-2" />
+                          Buscando...
+                        </>
+                      ) : (
+                        'Buscar Código'
+                      )}
+                    </button>
+                  </div>
+                  
+                  {phoneError && (
+                    <div className="text-sm text-red-300 bg-red-900/30 p-3 rounded-lg border border-red-800">
+                      {phoneError}
+                    </div>
+                  )}
+                  
+                  <div className="mt-3">
+                    <button 
+                      onClick={() => setShowPhoneForm(false)}
+                      className="text-sm text-gray-400 hover:text-white transition-colors"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-gray-300 text-sm mb-4">
+                    Não encontramos seu código de indicação no navegador atual.
+                  </p>
                   <button 
-                    onClick={() => setShowPhoneForm(false)}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    onClick={() => setShowPhoneForm(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
-                    Voltar
+                    Buscar meu código
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-gray-300 text-sm mb-4">
-                  Não encontramos seu código de indicação no navegador atual.
-                </p>
-                <button 
-                  onClick={() => setShowPhoneForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                >
-                  Buscar meu código
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </motion.div>
         
         <motion.div 
