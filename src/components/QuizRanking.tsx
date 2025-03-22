@@ -108,13 +108,10 @@ export function QuizRanking() {
         // Salvar no localStorage para uso futuro
         localStorage.setItem('referralCode', result.data.referralCode);
         
-        // Se temos um nome de usuário, usamos ele
-        if (result.data.userName && !userName) {
+        // Se temos um nome de usuário no resultado, usamos ele
+        if (result.data.userName) {
           setUserName(result.data.userName);
           localStorage.setItem('userName', result.data.userName);
-        } else if (userName) {
-          // Se o usuário inseriu um nome e não veio um do banco, salvamos o atual
-          localStorage.setItem('userName', userName);
         }
       } else {
         // Código não encontrado, mostrar erro
@@ -246,16 +243,6 @@ export function QuizRanking() {
                         onChange={(e) => setUserPhone(e.target.value)}
                         placeholder="Digite seu telefone (qualquer formato)"
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 pl-8 pr-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div className="relative flex-grow">
-                      <input 
-                        type="text" 
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        placeholder="Seu nome (opcional)"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                   </div>
