@@ -23,7 +23,6 @@ export function QuizRanking() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState(false);
-  const [showPhoneForm, setShowPhoneForm] = useState(true);
   const [userPhone, setUserPhone] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -40,9 +39,6 @@ export function QuizRanking() {
       if (savedName) {
         setUserName(savedName);
       }
-      
-      // Sempre começar com o formulário do telefone visível
-      setShowPhoneForm(true);
     }
     
     async function loadRanking() {
@@ -120,8 +116,6 @@ export function QuizRanking() {
           // Se o usuário inseriu um nome e não veio um do banco, salvamos o atual
           localStorage.setItem('userName', userName);
         }
-        
-        setShowPhoneForm(false);
       } else {
         // Código não encontrado, mostrar erro
         setPhoneError(result.error || 'Não encontramos um código associado a este telefone.');
@@ -228,7 +222,6 @@ export function QuizRanking() {
                     <button 
                       onClick={() => {
                         setReferralCode(null);
-                        setShowPhoneForm(true);
                       }}
                       className="text-xs text-gray-400 hover:text-white transition-colors"
                     >
