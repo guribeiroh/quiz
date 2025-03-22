@@ -654,6 +654,7 @@ export async function getReferralCodeByPhone(phone: string) {
     // Apenas para debug, mostrar todos os registros encontrados
     if (data && data.length > 0) {
       console.log('Registros encontrados:');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data.forEach((record: any, index: number) => {
         console.log(`Registro #${index + 1}:`, {
           nome: record.user_name,
@@ -696,6 +697,7 @@ export async function getReferralCodeByPhone(phone: string) {
         
         // Tentar encontrar qualquer número que contenha a sequência
         const lastDigits = cleanedPhone.slice(-4); // Pegar últimos 4 dígitos
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const match = flexData.find((row: any) => {
           const rowPhone = row.user_phone ? row.user_phone.replace(/\D/g, '') : '';
           return rowPhone.includes(lastDigits);
