@@ -614,4 +614,47 @@ export async function getReferralCodeOwner(referralCode: string) {
     console.error("Erro ao buscar informações do código:", e);
     return { success: false, error: e };
   }
+}
+
+// Função para buscar o código de referência pelo número de telefone
+export async function getReferralCodeByPhone(phone: string) {
+  try {
+    const supabase = getSupabaseClient();
+    
+    // Busca usuário pelo telefone no banco
+    const { data, error } = await (supabase as any)
+      .from('quiz_results')
+      .select('user_name, referral_code, user_phone')
+      .eq('user_phone', phone)
+      .limit(1);
+    
+    if (error) {
+      console.error('Erro ao buscar código de referência:', error);
+      return { 
+        success: false, 
+        error: 'Erro ao buscar código de referência. Tente novamente.' 
+      };
+    }
+    
+    if (data && data.length > 0) {
+      return { 
+        success: true, 
+        data: {
+          referralCode: data[0].referral_code,
+          userName: data[0].user_name,
+        } 
+      };
+    } else {
+      return { 
+        success: false, 
+        error: 'Não encontramos um código associado a este telefone.'
+      };
+    }
+  } catch (error) {
+    console.error('Erro ao buscar código de referência:', error);
+    return { 
+      success: false, 
+      error: 'Ocorreu um erro ao buscar o código. Tente novamente.'
+    };
+  }
 } 

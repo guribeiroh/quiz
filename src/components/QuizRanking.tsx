@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaSpinner, FaCheck, FaCopy, FaShareAlt, FaPhone, FaLink } from 'react-icons/fa';
-import { getQuizRanking } from '../lib/supabase';
+import { getQuizRanking, getReferralCodeByPhone } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
 import { RankingHeader } from './ranking/RankingHeader';
@@ -103,34 +103,29 @@ export function QuizRanking() {
         return;
       }
       
-      // Aqui você chamaria uma função para buscar o código por telefone no Supabase
-      // Por enquanto, simulamos um atraso e um resultado
-      // Exemplo: const result = await getReferralCodeByPhone(normalizedPhone);
+      // Buscar o código de referência no banco de dados
+      const result = await getReferralCodeByPhone(normalizedPhone);
       
-      // Simulação de chamada ao banco - substitua pela implementação real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Para teste - Aqui você buscaria o código real do usuário no Supabase baseado no telefone
-      // Se não encontrar, retornaria null ou um erro
-      const randomFound = Math.random() > 0.3; // 70% de chance de "encontrar" um código
-      
-      if (randomFound) {
-        const mockCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        setReferralCode(mockCode);
-        // Salvar no localStorage para uso futuro
-        localStorage.setItem('referralCode', mockCode);
+      if (result.success && result.data) {
+        // Código encontrado, atualizar os estados
+        setReferralCode(result.data.referralCode);
         
-        // Caso não tenha um nome salvo, solicitaríamos o nome
-        if (!userName) {
-          // Em um caso real, buscaríamos o nome associado ao telefone do banco de dados
-          const mockName = userName || "Aluno"; // Usar um nome padrão se não tiver
-          setUserName(mockName);
-          localStorage.setItem('userName', mockName);
+        // Salvar no localStorage para uso futuro
+        localStorage.setItem('referralCode', result.data.referralCode);
+        
+        // Se temos um nome de usuário, usamos ele
+        if (result.data.userName && !userName) {
+          setUserName(result.data.userName);
+          localStorage.setItem('userName', result.data.userName);
+        } else if (userName) {
+          // Se o usuário inseriu um nome e não veio um do banco, salvamos o atual
+          localStorage.setItem('userName', userName);
         }
         
         setShowPhoneForm(false);
       } else {
-        setPhoneError('Não encontramos um código associado a este telefone.');
+        // Código não encontrado, mostrar erro
+        setPhoneError(result.error || 'Não encontramos um código associado a este telefone.');
       }
     } catch (error) {
       console.error('Erro ao buscar código por telefone:', error);
