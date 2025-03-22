@@ -631,8 +631,8 @@ export async function getReferralCodeByPhone(phone: string) {
     }
     
     // Busca usuário pelo telefone no banco
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     console.log('Executando consulta para encontrar código com telefone:', phone);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('quiz_results')
       .select('user_name, referral_code, user_phone')
