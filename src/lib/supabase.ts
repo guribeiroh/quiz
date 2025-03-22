@@ -630,20 +630,38 @@ export async function getReferralCodeByPhone(phone: string) {
       user_phone: string;
     }
     
-    // Busca usuário pelo telefone no banco
+    // Normalizar o telefone - remover todos os caracteres não numéricos
+    const cleanedPhone = phone.replace(/\D/g, '');
+    console.log('Telefone limpo (apenas números):', cleanedPhone);
+    
+    // Busca usuário pelo telefone no banco usando LIKE para aumentar chances de encontrar
     console.log('Executando consulta para encontrar código com telefone:', phone);
+    console.log('Também tentaremos com o telefone normalizado:', cleanedPhone);
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('quiz_results')
       .select('user_name, referral_code, user_phone')
-      .eq('user_phone', phone)
-      .limit(1);
+      .or(`user_phone.eq.${phone},user_phone.eq.${cleanedPhone},user_phone.ilike.%${cleanedPhone}%`)
+      .limit(10);
     
     console.log('Resultado da consulta:', { 
       encontrado: data && data.length > 0, 
       quantidadeDeRegistros: data ? data.length : 0,
       erro: error ? error.message : null 
     });
+    
+    // Apenas para debug, mostrar todos os registros encontrados
+    if (data && data.length > 0) {
+      console.log('Registros encontrados:');
+      data.forEach((record: any, index: number) => {
+        console.log(`Registro #${index + 1}:`, {
+          nome: record.user_name,
+          telefone: record.user_phone,
+          codigo: record.referral_code
+        });
+      });
+    }
     
     if (error) {
       console.error('Erro ao buscar código de referência:', error);
@@ -664,7 +682,43 @@ export async function getReferralCodeByPhone(phone: string) {
         } 
       };
     } else {
-      console.log('Nenhum código encontrado para o telefone:', phone);
+      // Tentar uma busca mais flexível como último recurso
+      console.log('Tentando busca mais flexível como último recurso');
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: flexData, error: flexError } = await (supabase as any)
+        .from('quiz_results')
+        .select('user_name, referral_code, user_phone')
+        .limit(100);
+        
+      if (!flexError && flexData && flexData.length > 0) {
+        console.log(`Encontrados ${flexData.length} registros no total. Buscando correspondência manual.`);
+        
+        // Tentar encontrar qualquer número que contenha a sequência
+        const lastDigits = cleanedPhone.slice(-4); // Pegar últimos 4 dígitos
+        const match = flexData.find((row: any) => {
+          const rowPhone = row.user_phone ? row.user_phone.replace(/\D/g, '') : '';
+          return rowPhone.includes(lastDigits);
+        });
+        
+        if (match) {
+          console.log('Encontrada correspondência parcial com últimos dígitos:', {
+            nome: match.user_name,
+            telefone: match.user_phone,
+            codigo: match.referral_code
+          });
+          
+          return {
+            success: true,
+            data: {
+              referralCode: match.referral_code,
+              userName: match.user_name,
+            }
+          };
+        }
+      }
+      
+      console.log('Nenhum código encontrado para o telefone, mesmo após tentativas flexíveis');
       return { 
         success: false, 
         error: 'Não encontramos um código associado a este telefone.'
