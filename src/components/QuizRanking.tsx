@@ -23,7 +23,7 @@ export function QuizRanking() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState(false);
-  const [showPhoneForm, setShowPhoneForm] = useState(false);
+  const [showPhoneForm, setShowPhoneForm] = useState(true);
   const [userPhone, setUserPhone] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -35,17 +35,14 @@ export function QuizRanking() {
     if (typeof window !== 'undefined') {
       loadRanking();
       
-      // Verificar se há um código de referência salvo no localStorage
-      const savedCode = localStorage.getItem('referralCode');
-      if (savedCode) {
-        setReferralCode(savedCode);
-      }
-      
       // Verificar se há um nome de usuário salvo no localStorage
       const savedName = localStorage.getItem('userName');
       if (savedName) {
         setUserName(savedName);
       }
+      
+      // Sempre começar com o formulário do telefone visível
+      setShowPhoneForm(true);
     }
     
     async function loadRanking() {
@@ -226,8 +223,20 @@ export function QuizRanking() {
                     )}
                     Seu código: <span className="bg-gray-800 px-2 py-1 rounded ml-1 text-blue-300 font-mono">{referralCode}</span>
                   </div>
+                  
+                  <div className="mt-3 text-center">
+                    <button 
+                      onClick={() => {
+                        setReferralCode(null);
+                        setShowPhoneForm(true);
+                      }}
+                      className="text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      Buscar outro código
+                    </button>
+                  </div>
                 </div>
-              ) : showPhoneForm ? (
+              ) : (
                 <div>
                   <p className="text-gray-300 text-xs mb-3">
                     Digite seu telefone para buscarmos seu código de indicação:
@@ -280,27 +289,6 @@ export function QuizRanking() {
                       {phoneError}
                     </div>
                   )}
-                  
-                  <div className="mt-2">
-                    <button 
-                      onClick={() => setShowPhoneForm(false)}
-                      className="text-xs text-gray-400 hover:text-white transition-colors"
-                    >
-                      Voltar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-gray-300 text-xs mb-3">
-                    Não encontramos seu código de indicação no navegador atual.
-                  </p>
-                  <button 
-                    onClick={() => setShowPhoneForm(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Buscar meu código
-                  </button>
                 </div>
               )}
             </div>
