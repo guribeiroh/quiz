@@ -621,6 +621,13 @@ export async function getReferralCodeByPhone(phone: string) {
   try {
     const supabase = getSupabaseClient();
     
+    // Interface para representar o resultado da consulta
+    interface QuizResultRow {
+      user_name: string;
+      referral_code: string;
+      user_phone: string;
+    }
+    
     // Busca usuário pelo telefone no banco
     const { data, error } = await (supabase as any)
       .from('quiz_results')
@@ -637,11 +644,12 @@ export async function getReferralCodeByPhone(phone: string) {
     }
     
     if (data && data.length > 0) {
+      const result = data[0] as QuizResultRow;
       return { 
         success: true, 
         data: {
-          referralCode: data[0].referral_code,
-          userName: data[0].user_name,
+          referralCode: result.referral_code,
+          userName: result.user_name,
         } 
       };
     } else {
