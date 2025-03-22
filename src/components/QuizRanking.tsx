@@ -193,7 +193,7 @@ export function QuizRanking() {
                         ref={copyLinkRef}
                         type="text" 
                         readOnly 
-                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/quiz?ref=${referralCode}`}
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${referralCode}`}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
