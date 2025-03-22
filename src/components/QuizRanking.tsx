@@ -75,25 +75,40 @@ export function QuizRanking() {
     }
   };
   
+  // Função para normalizar o número de telefone
+  const normalizePhoneNumber = (phone: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbersOnly = phone.replace(/\D/g, '');
+    
+    // Verifica se o número tem um comprimento razoável (9-11 dígitos para Brasil)
+    if (numbersOnly.length < 9 || numbersOnly.length > 11) {
+      return null;
+    }
+    
+    return numbersOnly;
+  };
+  
   // Função para buscar código de referência pelo telefone
   const fetchReferralCodeByPhone = async (phone: string) => {
     try {
       setIsSearching(true);
       setPhoneError(null);
       
-      // Aqui você chamaria uma função para buscar o código por telefone no Supabase
-      // Por enquanto, simulamos um atraso e um resultado
-      // Exemplo: const result = await getReferralCodeByPhone(phone);
+      // Normaliza o número de telefone
+      const normalizedPhone = normalizePhoneNumber(phone);
       
-      // Simulação de chamada ao banco - substitua pela implementação real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verificar formato do telefone (simulação)
-      if (!phone.match(/^\(\d{2}\) \d{5}-\d{4}$/) && !phone.match(/^\d{10,11}$/)) {
-        setPhoneError('Formato de telefone inválido. Use (00) 00000-0000 ou apenas números.');
+      if (!normalizedPhone) {
+        setPhoneError('Número de telefone inválido. Certifique-se de que seu número tenha entre 9 e 11 dígitos.');
         setIsSearching(false);
         return;
       }
+      
+      // Aqui você chamaria uma função para buscar o código por telefone no Supabase
+      // Por enquanto, simulamos um atraso e um resultado
+      // Exemplo: const result = await getReferralCodeByPhone(normalizedPhone);
+      
+      // Simulação de chamada ao banco - substitua pela implementação real
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Para teste - Aqui você buscaria o código real do usuário no Supabase baseado no telefone
       // Se não encontrar, retornaria null ou um erro
@@ -219,7 +234,7 @@ export function QuizRanking() {
                       type="tel" 
                       value={userPhone}
                       onChange={(e) => setUserPhone(e.target.value)}
-                      placeholder="(00) 00000-0000"
+                      placeholder="Digite seu telefone (qualquer formato)"
                       className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
