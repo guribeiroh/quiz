@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaTrophy, FaMedal, FaAward, FaSpinner, FaStar, FaCrown, FaInfoCircle, FaClock, FaCheck, FaGift, FaAngleDown, FaAngleUp, FaChevronDown, FaLink, FaCopy, FaShareAlt, FaPhone } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { FaSpinner, FaCheck, FaCopy, FaShareAlt, FaPhone, FaLink } from 'react-icons/fa';
 import { getQuizRanking } from '../lib/supabase';
 import { Footer } from './Footer';
 import { RankingEntry } from '@/types/ranking';
@@ -17,7 +17,6 @@ export function QuizRanking() {
   const [isLoading, setIsLoading] = useState(true);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [expandedInfo, setExpandedInfo] = useState<boolean>(false);
   const [expandedEntry, setExpandedEntry] = useState<number | null>(null);
   const [highlightedRow, setHighlightedRow] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<'score' | 'time' | 'accuracy'>('score');
