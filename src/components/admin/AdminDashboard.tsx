@@ -388,7 +388,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               successfulReferrals: 0
             };
             referrerData.referralCount++;
-            if (result.score >= 7) {
+            if (result.score !== undefined && result.score >= 7) {
               referrerData.successfulReferrals++;
             }
             referrers.set(referrer, referrerData);
@@ -408,7 +408,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           const month = new Date(result.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
           const periodData = timeAnalysis.get(month) || { referralCount: 0, conversions: 0 };
           periodData.referralCount++;
-          if (result.score >= 7) {
+          if (result.score !== undefined && result.score >= 7) {
             periodData.conversions++;
           }
           timeAnalysis.set(month, periodData);
