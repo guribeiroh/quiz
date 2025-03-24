@@ -165,8 +165,10 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
     // Adicionar cada sessão ao seu conjunto correspondente
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     allEvents?.forEach((event: any) => {
-      if (sessions[event.step]) {
-        sessions[event.step].add(event.session_id);
+      // Verifica se event.step é uma key válida de sessions
+      const stepKey = event.step as keyof typeof sessions;
+      if (sessions[stepKey]) {
+        sessions[stepKey].add(event.session_id);
       }
     });
     
