@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
-import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiFilter, FiRefreshCw } from 'react-icons/fi';
 
 export interface FunnelData {
   stepName: string;
@@ -23,24 +23,54 @@ interface EventCount {
   user_count: number;
 }
 
+interface DateRange {
+  startDate: string;
+  endDate: string;
+}
+
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [activeTab, setActiveTab] = useState('funnel');
+  
+  // Estados para o filtro de data
+  const [dateFilter, setDateFilter] = useState<DateRange>({
+    startDate: getLastMonthDate(),
+    endDate: getCurrentDate()
+  });
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Função para obter a data atual formatada YYYY-MM-DD
+  function getCurrentDate() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
+
+  // Função para obter a data de um mês atrás
+  function getLastMonthDate() {
+    const today = new Date();
+    today.setMonth(today.getMonth() - 1);
+    return today.toISOString().split('T')[0];
+  }
 
   // Carrega os dados do funil
   const fetchFunnelData = async () => {
     try {
       setLoading(true);
+      setIsRefreshing(true);
       const supabase = getSupabaseClient();
       
       // Usando a função rpc para evitar erros de tipo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let events: any[] = [];
       try {
-        // Tentamos usar a API do Supabase de maneira simplificada
-        const result = await supabase.rpc('get_event_counts', {});
+        // Tentamos usar a API do Supabase com filtro de data
+        const result = await supabase.rpc('get_event_counts', {
+          start_date: dateFilter.startDate,
+          end_date: dateFilter.endDate
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         events = Array.isArray(result) ? result : [];
       } catch (supabaseError) {
@@ -104,7 +134,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       let categories: any[] = [];
       try {
         // Tentando buscar categorias com abordagem simplificada
-        const result = await supabase.rpc('get_categories', {});
+        const result = await supabase.rpc('get_categories', {
+          start_date: dateFilter.startDate,
+          end_date: dateFilter.endDate
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         categories = Array.isArray(result) ? result : [];
       } catch (catError) {
@@ -131,15 +164,28 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
+  // Atualizar dados quando o filtro de data mudar
   useEffect(() => {
-    // Executar carregamento de dados ao montar o componente
     fetchFunnelData();
-  }, []);
+  }, [dateFilter]);
 
-  if (loading) {
+  const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setDateFilter(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRefresh = () => {
+    fetchFunnelData();
+  };
+
+  if (loading && !isRefreshing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-slate-900 flex justify-center items-center">
         <div className="animate-pulse flex flex-col items-center">
@@ -153,19 +199,78 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-slate-900 py-8 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Dashboard de Analytics</h1>
             <p className="text-gray-400 mt-1">Acompanhe o desempenho do funil de conversão</p>
           </div>
           
-          <button
-            onClick={onLogout}
-            className="mt-4 md:mt-0 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Sair
-          </button>
+          <div className="flex flex-col md:flex-row items-start md:items-center mt-4 md:mt-0 gap-3">
+            <button
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+            >
+              <FiCalendar className="mr-2" /> 
+              <span>Filtrar por data</span>
+            </button>
+            
+            <button
+              onClick={handleRefresh}
+              className={`px-4 py-2 bg-indigo-700 text-indigo-100 rounded-lg hover:bg-indigo-600 transition-colors flex items-center ${isRefreshing ? 'opacity-70 pointer-events-none' : ''}`}
+              disabled={isRefreshing}
+            >
+              <FiRefreshCw className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} /> 
+              <span>{isRefreshing ? 'Atualizando...' : 'Atualizar dados'}</span>
+            </button>
+            
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Sair
+            </button>
+          </div>
         </header>
+
+        {/* Filtro de data */}
+        {showDateFilter && (
+          <div className="mb-6 p-4 bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl animate-fadeIn">
+            <div className="flex items-center mb-3">
+              <FiFilter className="text-cyan-500 mr-2" />
+              <h3 className="text-white font-medium">Filtrar por período</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm text-gray-400 mb-1">Data inicial</label>
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={dateFilter.startDate}
+                  onChange={handleDateFilterChange}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="endDate" className="block text-sm text-gray-400 mb-1">Data final</label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={dateFilter.endDate}
+                  onChange={handleDateFilterChange}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                />
+              </div>
+            </div>
+            <div className="mt-3 text-sm text-gray-400">
+              <span>Mostrando dados de </span>
+              <span className="text-cyan-400 font-medium">{new Date(dateFilter.startDate).toLocaleDateString('pt-BR')}</span>
+              <span> até </span>
+              <span className="text-cyan-400 font-medium">{new Date(dateFilter.endDate).toLocaleDateString('pt-BR')}</span>
+            </div>
+          </div>
+        )}
 
         {/* Cards de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -262,11 +367,33 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {/* Conteúdo das Abas */}
         <div className="mb-8">
-          {activeTab === 'funnel' ? (
+          {isRefreshing ? (
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg h-80 flex items-center justify-center">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-400">Atualizando dados...</p>
+              </div>
+            </div>
+          ) : activeTab === 'funnel' ? (
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
               <h2 className="text-lg font-medium text-white mb-4">Visualização do Funil</h2>
               <div className="h-80">
                 <FunnelChart data={funnelData} />
+              </div>
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {funnelData.map((step, index) => (
+                  <div 
+                    key={index} 
+                    className="bg-gray-800 border border-gray-700 rounded-lg p-3 text-center transition-all hover:shadow-md hover:border-gray-600"
+                  >
+                    <p className="text-sm text-gray-400">{step.stepName}</p>
+                    <p className="text-xl font-semibold text-white mt-1">{step.totalUsers.toLocaleString('pt-BR')}</p>
+                    <div className="flex justify-between mt-2 text-xs">
+                      <span className="text-emerald-400">↑ {step.retentionRate.toFixed(1)}%</span>
+                      <span className="text-rose-400">↓ {step.dropoffRate.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -287,7 +414,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
           <h2 className="text-lg font-medium text-white mb-4">Distribuição por Categoria</h2>
           
-          {categoryData.length > 0 ? (
+          {isRefreshing ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-3"></div>
+                <p className="text-gray-400 text-sm">Atualizando dados...</p>
+              </div>
+            </div>
+          ) : categoryData.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -303,7 +437,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     const percentage = (category.value / totalResults) * 100;
                     
                     return (
-                      <tr key={category.name} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                      <tr key={category.name} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                         <td className="py-3 px-4 text-white">{category.name}</td>
                         <td className="py-3 px-4 text-right text-gray-300">{category.value.toLocaleString('pt-BR')}</td>
                         <td className="py-3 px-4">

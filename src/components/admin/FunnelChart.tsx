@@ -17,15 +17,32 @@ interface TooltipProps {
   }>;
 }
 
-// Cores para o funil
-const COLORS = ['#0284c7', '#0369a1', '#075985', '#0c4a6e'];
+// Definindo gradientes para o funil para um visual mais moderno
+const GRADIENTS = [
+  {
+    id: 'gradient1',
+    colors: ['#0284c7', '#0ea5e9']
+  },
+  {
+    id: 'gradient2',
+    colors: ['#0ea5e9', '#38bdf8']
+  },
+  {
+    id: 'gradient3',
+    colors: ['#38bdf8', '#7dd3fc']
+  },
+  {
+    id: 'gradient4',
+    colors: ['#7dd3fc', '#bae6fd']
+  }
+];
 
 // Custom tooltip que mostra dados do usuário no hover
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-xl text-white">
+      <div className="bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-xl text-white transition-all duration-300 scale-100 transform">
         <h3 className="text-lg font-medium mb-2 text-cyan-400">{data.stepName}</h3>
         <p className="text-white font-semibold text-xl">
           {data.totalUsers.toLocaleString('pt-BR')} <span className="text-sm text-gray-300">usuários</span>
@@ -40,11 +57,48 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
             <p className="text-gray-300 text-xs">abandono</p>
           </div>
         </div>
+        
+        {/* Indicador de taxa de conversão em relação à primeira etapa */}
+        {data.stepName !== 'Tela Inicial' && (
+          <div className="mt-3 pt-2 border-t border-gray-700">
+            <p className="text-xs text-gray-400">Taxa de conversão total:</p>
+            <p className="text-cyan-400 font-medium">
+              {((data.totalUsers / payload[0].payload.data[0].totalUsers) * 100).toFixed(1)}%
+            </p>
+          </div>
+        )}
       </div>
     );
   }
 
   return null;
+};
+
+const CustomLabel = (props: any) => {
+  const { x, y, width, height, value, name, index } = props;
+  
+  return (
+    <g>
+      <text
+        x={x + (width / 2)}
+        y={y + (height / 2) - 12}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className="fill-white font-medium text-sm"
+      >
+        {name}
+      </text>
+      <text
+        x={x + (width / 2)}
+        y={y + (height / 2) + 12}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className="fill-gray-300 font-medium text-sm"
+      >
+        {value.toLocaleString('pt-BR')}
+      </text>
+    </g>
+  );
 };
 
 export function FunnelChart({ data }: FunnelChartProps) {
@@ -54,7 +108,9 @@ export function FunnelChart({ data }: FunnelChartProps) {
     
     return data.map((step, index) => ({
       ...step,
-      fill: COLORS[index % COLORS.length],
+      data: data, // Incluir o dataset completo para referência
+      fill: `url(#funnel-gradient-${index})`,
+      name: step.stepName,
       value: step.totalUsers
     }));
   }, [data]);
@@ -74,23 +130,47 @@ export function FunnelChart({ data }: FunnelChartProps) {
           width={730}
           height={250}
         >
-          <Tooltip content={<CustomTooltip />} />
+          <defs>
+            {GRADIENTS.map((gradient, index) => (
+              <linearGradient
+                key={index}
+                id={`funnel-gradient-${index}`}
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="0%" stopColor={gradient.colors[0]} stopOpacity={0.9} />
+                <stop offset="100%" stopColor={gradient.colors[1]} stopOpacity={0.9} />
+              </linearGradient>
+            ))}
+          </defs>
+          <Tooltip 
+            content={<CustomTooltip />} 
+            animationDuration={300} 
+            animationEasing="ease-out"
+          />
           <Funnel
             dataKey="value"
             data={formattedData}
-            isAnimationActive
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
             labelLine={false}
+            nameKey="name"
           >
             <LabelList
-              position="right"
-              fill="#ffffff"
-              stroke="none"
-              dataKey="stepName"
-              className="text-sm"
+              position="inside"
+              content={<CustomLabel />}
             />
           </Funnel>
         </RechartsFunnelChart>
       </ResponsiveContainer>
+      
+      {/* Legenda da visualização */}
+      <div className="absolute bottom-2 right-3 text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+        Usuários por etapa do funil
+      </div>
     </div>
   );
 } 
