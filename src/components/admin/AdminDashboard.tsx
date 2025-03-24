@@ -18,6 +18,15 @@ interface EventCount {
   user_count: number;
 }
 
+// Interface para armazenar dados detalhados do funil
+interface DetailedFunnelData {
+  step: string;
+  questionNumber?: number;
+  totalUsers: number;
+  percentage: number;
+  dropoff: number;
+}
+
 interface DateRange {
   startDate: string;
   endDate: string;
@@ -80,6 +89,7 @@ const DATE_PRESETS: DateRange[] = [
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
+  const [detailedFunnelData, setDetailedFunnelData] = useState<DetailedFunnelData[]>([]);
   const [activeTab, setActiveTab] = useState('funnel');
   
   // Estados para o filtro de data
@@ -230,6 +240,61 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       ];
 
       setFunnelData(funnelSteps);
+      
+      // Processar dados detalhados do funil
+      // Encontrar eventos específicos de perguntas (ex: "Pergunta 1", "Pergunta 2", etc)
+      const questionEvents = eventData.filter(e => e.event_name.includes('Pergunta') || e.event_name.includes('pergunta'));
+      console.log('Eventos de perguntas encontrados:', questionEvents);
+      
+      // Criar array de passos detalhados
+      const detailedSteps: DetailedFunnelData[] = [
+        {
+          step: 'Tela de Boas-vindas',
+          totalUsers: welcomeCount,
+          percentage: 100,
+          dropoff: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
+        }
+      ];
+      
+      // Adicionar cada pergunta como um passo
+      for (let i = 1; i <= 10; i++) {
+        const questionEvent = eventData.find(e => 
+          e.event_name.includes(`Pergunta ${i}`) || 
+          e.event_name.includes(`pergunta ${i}`) ||
+          e.event_name.includes(`Questão ${i}`) ||
+          e.event_name.includes(`questão ${i}`)
+        );
+        
+        const questionCount = questionEvent?.user_count || 0;
+        const prevCount = i === 1 ? welcomeCount : (detailedSteps[i]?.totalUsers || welcomeCount);
+        
+        detailedSteps.push({
+          step: `Pergunta ${i}`,
+          questionNumber: i,
+          totalUsers: questionCount,
+          percentage: welcomeCount > 0 ? (questionCount / welcomeCount * 100) : 0,
+          dropoff: prevCount > 0 ? ((prevCount - questionCount) / prevCount * 100) : 0
+        });
+      }
+      
+      // Adicionar etapas finais
+      detailedSteps.push({
+        step: 'Captura de Dados',
+        totalUsers: captureCount,
+        percentage: welcomeCount > 0 ? (captureCount / welcomeCount * 100) : 0,
+        dropoff: questionEvents.length > 0 ? 
+          ((detailedSteps[detailedSteps.length - 1].totalUsers - captureCount) / detailedSteps[detailedSteps.length - 1].totalUsers * 100) : 
+          (questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0)
+      });
+      
+      detailedSteps.push({
+        step: 'Resultados',
+        totalUsers: resultsCount,
+        percentage: welcomeCount > 0 ? (resultsCount / welcomeCount * 100) : 0,
+        dropoff: captureCount > 0 ? ((captureCount - resultsCount) / captureCount * 100) : 0
+      });
+      
+      setDetailedFunnelData(detailedSteps);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -485,6 +550,19 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('detailed')}
+              className={`py-3 px-1 relative ${
+                activeTab === 'detailed'
+                  ? 'text-cyan-400 font-medium'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Funil Completo
+              {activeTab === 'detailed' && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -524,7 +602,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'steps' ? (
             <div className="space-y-4">
               {funnelData.map((step, index) => (
                 <FunnelStep
@@ -534,6 +612,145 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   isLastStep={index === funnelData.length - 1}
                 />
               ))}
+            </div>
+          ) : (
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-medium text-white">Funil Completo (Passo a Passo)</h2>
+                <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+                  Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="py-3 px-4 text-left text-gray-300 font-medium">Etapa</th>
+                      <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
+                      <th className="py-3 px-4 text-right text-gray-300 font-medium">% do Total</th>
+                      <th className="py-3 px-4 text-right text-gray-300 font-medium">Taxa de Abandono</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailedFunnelData.map((step, index) => {
+                      const isQuestion = step.questionNumber !== undefined;
+                      const isLastStep = index === detailedFunnelData.length - 1;
+                      
+                      return (
+                        <tr 
+                          key={step.step} 
+                          className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${isQuestion ? 'text-sm' : 'font-medium'}`}
+                        >
+                          <td className="py-3 px-4 text-white">
+                            <div className="flex items-center">
+                              {isQuestion ? (
+                                <span className="ml-6">{step.step}</span>
+                              ) : (
+                                <span className="text-cyan-400">{step.step}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right text-gray-300">
+                            {step.totalUsers.toLocaleString('pt-BR')}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="inline-flex items-center px-2 py-1 rounded bg-emerald-900/20">
+                              <span className="text-emerald-400">{step.percentage.toFixed(2)}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {!isLastStep && (
+                              <div className="inline-flex items-center px-2 py-1 rounded bg-rose-900/20">
+                                <span className="text-rose-400">{step.dropoff.toFixed(2)}%</span>
+                              </div>
+                            )}
+                            {isLastStep && (
+                              <span className="text-gray-500">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              
+              <div className="mt-8">
+                <h3 className="text-white font-medium mb-3">Visualização Gráfica</h3>
+                <div className="relative h-10 bg-gray-700/50 rounded-lg overflow-hidden">
+                  {detailedFunnelData.map((step, index) => {
+                    // Calcular posição baseada na porcentagem do total
+                    const width = `${step.percentage}%`;
+                    const prevWidth = index > 0 ? detailedFunnelData[index-1].percentage : 0;
+                    const left = `${prevWidth}%`;
+                    
+                    // Gerar cores diferentes para cada etapa
+                    const colors = [
+                      'from-cyan-500 to-blue-500',
+                      'from-blue-500 to-indigo-500',
+                      'from-indigo-500 to-purple-500',
+                      'from-purple-500 to-pink-500',
+                      'from-pink-500 to-rose-500',
+                      'from-rose-500 to-orange-500',
+                      'from-orange-500 to-amber-500',
+                      'from-amber-500 to-yellow-500',
+                      'from-yellow-500 to-lime-500',
+                      'from-lime-500 to-green-500',
+                      'from-green-500 to-emerald-500',
+                      'from-emerald-500 to-teal-500',
+                      'from-teal-500 to-cyan-500'
+                    ];
+                    
+                    const colorClass = colors[index % colors.length];
+                    
+                    return (
+                      <div
+                        key={step.step}
+                        className={`absolute h-full bg-gradient-to-r ${colorClass} opacity-80`}
+                        style={{ 
+                          width,
+                          left,
+                          transition: 'all 0.5s ease-in-out'
+                        }}
+                        title={`${step.step}: ${step.totalUsers} usuários (${step.percentage.toFixed(2)}%)`}
+                      />
+                    );
+                  })}
+                </div>
+                
+                {/* Legenda */}
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  {detailedFunnelData.map((step, index) => {
+                    const colors = [
+                      'from-cyan-500 to-blue-500',
+                      'from-blue-500 to-indigo-500',
+                      'from-indigo-500 to-purple-500',
+                      'from-purple-500 to-pink-500',
+                      'from-pink-500 to-rose-500',
+                      'from-rose-500 to-orange-500',
+                      'from-orange-500 to-amber-500',
+                      'from-amber-500 to-yellow-500',
+                      'from-yellow-500 to-lime-500',
+                      'from-lime-500 to-green-500',
+                      'from-green-500 to-emerald-500',
+                      'from-emerald-500 to-teal-500',
+                      'from-teal-500 to-cyan-500'
+                    ];
+                    
+                    const colorClass = colors[index % colors.length];
+                    
+                    return (
+                      <div key={step.step} className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 bg-gradient-to-r ${colorClass}`} />
+                        <span className="text-gray-300 truncate" title={step.step}>
+                          {step.step}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
