@@ -33,6 +33,18 @@ export function Question() {
     }
   }, []);
   
+  // Rastrear cada pergunta individualmente quando ela mudar
+  useEffect(() => {
+    if (currentQuestion) {
+      const sid = generateSessionId();
+      const questionNumber = questions.findIndex(q => q.id === currentQuestion.id) + 1;
+      
+      // Rastrear a pergunta específica
+      trackStepView(`Pergunta ${questionNumber}`, sid)
+        .catch(error => console.error(`Erro ao rastrear visualização da pergunta ${questionNumber}:`, error));
+    }
+  }, [currentQuestion, questions]);
+  
   // Efeito de pulsar quando o tempo estiver acabando
   useEffect(() => {
     if (timeRemaining <= 5 && !selectedAnswer) {
