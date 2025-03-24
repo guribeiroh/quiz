@@ -521,234 +521,145 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
 
-        {/* Navegação das Abas */}
-        <div className="mb-6 border-b border-gray-700">
-          <div className="flex space-x-6">
+        {/* Tabs */}
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+          <div className="flex space-x-4 mb-4">
             <button
+              className={`px-4 py-2 font-medium rounded ${activeTab === 'funnel' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
               onClick={() => setActiveTab('funnel')}
-              className={`py-3 px-1 relative ${
-                activeTab === 'funnel'
-                  ? 'text-cyan-400 font-medium'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
             >
               Funil de Conversão
-              {activeTab === 'funnel' && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
-              )}
             </button>
             <button
-              onClick={() => setActiveTab('steps')}
-              className={`py-3 px-1 relative ${
-                activeTab === 'steps'
-                  ? 'text-cyan-400 font-medium'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
+              className={`px-4 py-2 font-medium rounded ${activeTab === 'events' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+              onClick={() => setActiveTab('events')}
             >
-              Etapas Detalhadas
-              {activeTab === 'steps' && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
-              )}
+              Eventos por Data
             </button>
             <button
+              className={`px-4 py-2 font-medium rounded ${activeTab === 'detailed' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
               onClick={() => setActiveTab('detailed')}
-              className={`py-3 px-1 relative ${
-                activeTab === 'detailed'
-                  ? 'text-cyan-400 font-medium'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
             >
               Funil Completo
-              {activeTab === 'detailed' && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
-              )}
             </button>
           </div>
-        </div>
 
-        {/* Conteúdo das Abas */}
-        <div className="mb-8">
-          {isRefreshing ? (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg h-80 flex items-center justify-center">
-              <div className="animate-pulse flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-400">Atualizando dados...</p>
-              </div>
-            </div>
-          ) : activeTab === 'funnel' ? (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-white">Visualização do Funil</h2>
-                <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-                  Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
-                </div>
-              </div>
-              <div className="h-80">
-                <FunnelChart data={funnelData} />
-              </div>
-              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {funnelData.map((step, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-gray-800 border border-gray-700 rounded-lg p-3 text-center transition-all hover:shadow-md hover:border-gray-600"
-                  >
-                    <p className="text-sm text-gray-400">{step.stepName}</p>
-                    <p className="text-xl font-semibold text-white mt-1">{step.totalUsers.toLocaleString('pt-BR')}</p>
-                    <div className="flex justify-between mt-2 text-xs">
-                      <span className="text-emerald-400">↑ {step.retentionRate.toFixed(2)}%</span>
-                      <span className="text-rose-400">↓ {step.dropoffRate.toFixed(2)}%</span>
-                    </div>
+          {activeTab === 'funnel' && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Funil de Conversão</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Métricas do Funil</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-4 text-left">Etapa</th>
+                          <th className="py-2 px-4 text-left">Usuários</th>
+                          <th className="py-2 px-4 text-left">Taxa de Retenção</th>
+                          <th className="py-2 px-4 text-left">Taxa de Abandono</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {funnelData.map((step, index) => (
+                          <FunnelStep key={index} step={step} />
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : activeTab === 'steps' ? (
-            <div className="space-y-4">
-              {funnelData.map((step, index) => (
-                <FunnelStep
-                  key={step.stepName}
-                  step={step}
-                  index={index}
-                  isLastStep={index === funnelData.length - 1}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-white">Funil Completo (Passo a Passo)</h2>
-                <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-                  Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Visualização do Funil</h3>
+                  <FunnelChart data={funnelData} />
                 </div>
               </div>
-              
+            </div>
+          )}
+
+          {activeTab === 'events' && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Eventos por Data</h2>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="py-3 px-4 text-left text-gray-300 font-medium">Etapa</th>
-                      <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
-                      <th className="py-3 px-4 text-right text-gray-300 font-medium">% do Total</th>
-                      <th className="py-3 px-4 text-right text-gray-300 font-medium">Taxa de Abandono</th>
+                <table className="min-w-full bg-white">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="py-2 px-4 text-left">Evento</th>
+                      <th className="py-2 px-4 text-left">Usuários</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {detailedFunnelData.map((step, index) => {
-                      const isQuestion = step.questionNumber !== undefined;
-                      const isLastStep = index === detailedFunnelData.length - 1;
-                      
-                      return (
-                        <tr 
-                          key={step.step} 
-                          className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${isQuestion ? 'text-sm' : 'font-medium'}`}
-                        >
-                          <td className="py-3 px-4 text-white">
-                            <div className="flex items-center">
-                              {isQuestion ? (
-                                <span className="ml-6">{step.step}</span>
-                              ) : (
-                                <span className="text-cyan-400">{step.step}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-300">
-                            {step.totalUsers.toLocaleString('pt-BR')}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="inline-flex items-center px-2 py-1 rounded bg-emerald-900/20">
-                              <span className="text-emerald-400">{step.percentage.toFixed(2)}%</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            {!isLastStep && (
-                              <div className="inline-flex items-center px-2 py-1 rounded bg-rose-900/20">
-                                <span className="text-rose-400">{step.dropoff.toFixed(2)}%</span>
-                              </div>
-                            )}
-                            {isLastStep && (
-                              <span className="text-gray-500">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {eventData.map((event, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="py-2 px-4">{event.event_name}</td>
+                        <td className="py-2 px-4">{event.user_count}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              
-              <div className="mt-8">
-                <h3 className="text-white font-medium mb-3">Visualização Gráfica</h3>
-                <div className="relative h-10 bg-gray-700/50 rounded-lg overflow-hidden">
-                  {detailedFunnelData.map((step, index) => {
-                    // Calcular posição baseada na porcentagem do total
-                    const width = `${step.percentage}%`;
-                    const prevWidth = index > 0 ? detailedFunnelData[index-1].percentage : 0;
-                    const left = `${prevWidth}%`;
-                    
-                    // Gerar cores diferentes para cada etapa
-                    const colors = [
-                      'from-cyan-500 to-blue-500',
-                      'from-blue-500 to-indigo-500',
-                      'from-indigo-500 to-purple-500',
-                      'from-purple-500 to-pink-500',
-                      'from-pink-500 to-rose-500',
-                      'from-rose-500 to-orange-500',
-                      'from-orange-500 to-amber-500',
-                      'from-amber-500 to-yellow-500',
-                      'from-yellow-500 to-lime-500',
-                      'from-lime-500 to-green-500',
-                      'from-green-500 to-emerald-500',
-                      'from-emerald-500 to-teal-500',
-                      'from-teal-500 to-cyan-500'
-                    ];
-                    
-                    const colorClass = colors[index % colors.length];
-                    
-                    return (
-                      <div
-                        key={step.step}
-                        className={`absolute h-full bg-gradient-to-r ${colorClass} opacity-80`}
-                        style={{ 
-                          width,
-                          left,
-                          transition: 'all 0.5s ease-in-out'
-                        }}
-                        title={`${step.step}: ${step.totalUsers} usuários (${step.percentage.toFixed(2)}%)`}
-                      />
-                    );
-                  })}
+            </div>
+          )}
+
+          {activeTab === 'detailed' && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Visualização Detalhada do Funil</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Detalhamento por Etapa</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-4 text-left">Etapa</th>
+                          <th className="py-2 px-4 text-left">Usuários</th>
+                          <th className="py-2 px-4 text-left">% do Total</th>
+                          <th className="py-2 px-4 text-left">% Abandono</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailedFunnelData.map((step, index) => (
+                          <tr key={index} className={`border-b ${index % 2 === 0 ? 'bg-gray-50' : ''}`}>
+                            <td className="py-2 px-4 font-medium">{step.step}</td>
+                            <td className="py-2 px-4">{step.totalUsers}</td>
+                            <td className="py-2 px-4">{step.percentage.toFixed(2)}%</td>
+                            <td className="py-2 px-4">{step.dropoff.toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                
-                {/* Legenda */}
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  {detailedFunnelData.map((step, index) => {
-                    const colors = [
-                      'from-cyan-500 to-blue-500',
-                      'from-blue-500 to-indigo-500',
-                      'from-indigo-500 to-purple-500',
-                      'from-purple-500 to-pink-500',
-                      'from-pink-500 to-rose-500',
-                      'from-rose-500 to-orange-500',
-                      'from-orange-500 to-amber-500',
-                      'from-amber-500 to-yellow-500',
-                      'from-yellow-500 to-lime-500',
-                      'from-lime-500 to-green-500',
-                      'from-green-500 to-emerald-500',
-                      'from-emerald-500 to-teal-500',
-                      'from-teal-500 to-cyan-500'
-                    ];
-                    
-                    const colorClass = colors[index % colors.length];
-                    
-                    return (
-                      <div key={step.step} className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-2 bg-gradient-to-r ${colorClass}`} />
-                        <span className="text-gray-300 truncate" title={step.step}>
-                          {step.step}
-                        </span>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Progressão Detalhada</h3>
+                  <div className="bg-gray-100 p-4 rounded-lg">
+                    {detailedFunnelData.map((step, index) => (
+                      <div key={index} className="mb-3">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium">{step.step}</span>
+                          <span className="text-sm font-medium">{step.totalUsers} usuários ({step.percentage.toFixed(2)}%)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-4">
+                          <div 
+                            className="bg-blue-600 h-4 rounded-full" 
+                            style={{ width: `${step.percentage}%` }}
+                          ></div>
+                        </div>
+                        {index < detailedFunnelData.length - 1 && (
+                          <div className="flex justify-end text-sm text-red-500 mt-1">
+                            <FiChevronDown className="mr-1" />
+                            Abandono: {step.dropoff.toFixed(2)}%
+                          </div>
+                        )}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  <div className="mt-4 bg-gray-50 p-3 rounded-lg text-sm">
+                    <p className="font-medium mb-2">Legenda:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li><span className="text-blue-600 font-medium">% do Total</span>: Porcentagem de usuários em relação ao total que iniciou o funil</li>
+                      <li><span className="text-red-500 font-medium">% Abandono</span>: Porcentagem de usuários que abandonou nesta etapa</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
