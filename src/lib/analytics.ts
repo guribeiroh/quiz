@@ -170,9 +170,6 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
     let completedQuizzes = [];
     try {
       // Consultar quiz_results
-      const startDate = new Date(startTimestamp).toISOString();
-      const endDate = new Date(endTimestamp).toISOString();
-      
       const quizResultsQuery = await supabase
         .from('quiz_results')
         .select('*');
