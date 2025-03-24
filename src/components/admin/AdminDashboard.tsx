@@ -29,6 +29,17 @@ interface DateRange {
   label?: string;
 }
 
+// Adicionar interfaces para os eventos e categorias
+interface EventData {
+  event_name: string;
+  created_at: string;
+}
+
+interface CategoryResult {
+  category: string;
+  created_at: string;
+}
+
 // Opções predefinidas de filtro de data
 const DATE_PRESETS: DateRange[] = [
   {
@@ -128,14 +139,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
           // Filtrar por data manualmente
-          const filteredEvents = eventsData.filter(event => {
+          const filteredEvents = eventsData.filter((event: EventData) => {
             const eventDate = new Date(event.created_at);
             return eventDate >= startDate && eventDate <= endDate;
           });
           
           // Processar manualmente para contar eventos por tipo
           const eventCounts: Record<string, number> = {};
-          filteredEvents.forEach(event => {
+          filteredEvents.forEach((event: EventData) => {
             const name = event.event_name;
             eventCounts[name] = (eventCounts[name] || 0) + 1;
           });
@@ -222,12 +233,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           console.error('Erro ao consultar categorias:', error);
         } else if (categoriesData) {
           // Filtrar por data manualmente
-          const filteredCategories = categoriesData.filter(item => {
+          const filteredCategories = categoriesData.filter((item: CategoryResult) => {
             const itemDate = new Date(item.created_at);
             return itemDate >= startDate && itemDate <= endDate;
           });
           
-          categories = filteredCategories.map(item => ({ category: item.category })) || [];
+          categories = filteredCategories.map((item: CategoryResult) => ({ category: item.category })) || [];
           console.log('Categorias encontradas:', categories.length);
         }
       } catch (catError) {
