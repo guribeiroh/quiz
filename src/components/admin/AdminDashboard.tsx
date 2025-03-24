@@ -562,7 +562,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       </thead>
                       <tbody>
                         {funnelData.map((step, index) => (
-                          <FunnelStep key={index} step={step} />
+                          <FunnelStep key={index} step={step} index={index} isLastStep={index === funnelData.length - 1} />
                         ))}
                       </tbody>
                     </table>
