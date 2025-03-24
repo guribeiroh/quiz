@@ -26,6 +26,28 @@ interface DetailedFunnelData {
   dropoff: number;
 }
 
+// Interface para análise de indicações
+interface ReferralAnalytics {
+  totalReferrals: number;
+  activeReferrers: number;
+  averageReferralsPerUser: number;
+  conversionRate: number;
+  topReferrers: {
+    userName: string;
+    referralCount: number;
+    successRate: number;
+  }[];
+  referralChains: {
+    chainLength: number;
+    count: number;
+  }[];
+  timeBasedAnalysis: {
+    period: string;
+    referralCount: number;
+    conversionRate: number;
+  }[];
+}
+
 interface DateRange {
   startDate: string;
   endDate: string;
@@ -90,6 +112,15 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [detailedFunnelData, setDetailedFunnelData] = useState<DetailedFunnelData[]>([]);
   const [eventData, setEventData] = useState<EventCount[]>([]);
+  const [referralData, setReferralData] = useState<ReferralAnalytics>({
+    totalReferrals: 0,
+    activeReferrers: 0,
+    averageReferralsPerUser: 0,
+    conversionRate: 0,
+    topReferrers: [],
+    referralChains: [],
+    timeBasedAnalysis: []
+  });
   const [activeTab, setActiveTab] = useState('funnel');
   
   // Estados para o filtro de data
@@ -304,10 +335,121 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [dateFilter]);
 
+  // Carrega os dados de indicações
+  const fetchReferralData = useCallback(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Converter datas para o formato correto
+      const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
+      const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
+      
+      // Buscar todos os resultados do quiz com dados de indicação
+      const { data: quizResults, error } = await supabase
+        .from('quiz_results')
+        .select('*')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+        
+      if (error) {
+        console.error('Erro ao buscar dados de indicações:', error);
+        return;
+      }
+      
+      // Processar dados para análise
+      const referrers = new Map();
+      const chains = new Map();
+      const timeAnalysis = new Map();
+      
+      quizResults?.forEach(result => {
+        // Contar indicações por usuário
+        if (result.referral_code) {
+          const referrer = result.referred_by;
+          if (referrer) {
+            const referrerData = referrers.get(referrer) || { 
+              userName: result.user_name,
+              referralCount: 0,
+              successfulReferrals: 0
+            };
+            referrerData.referralCount++;
+            if (result.score >= 7) {
+              referrerData.successfulReferrals++;
+            }
+            referrers.set(referrer, referrerData);
+          }
+          
+          // Analisar cadeias de indicação
+          let chainLength = 1;
+          let currentReferrer = result.referred_by;
+          while (currentReferrer) {
+            chainLength++;
+            const referrerResult = quizResults.find(r => r.id === currentReferrer);
+            currentReferrer = referrerResult?.referred_by;
+          }
+          chains.set(chainLength, (chains.get(chainLength) || 0) + 1);
+          
+          // Análise temporal
+          const month = new Date(result.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+          const periodData = timeAnalysis.get(month) || { referralCount: 0, conversions: 0 };
+          periodData.referralCount++;
+          if (result.score >= 7) {
+            periodData.conversions++;
+          }
+          timeAnalysis.set(month, periodData);
+        }
+      });
+      
+      // Calcular métricas finais
+      const totalReferrals = quizResults?.filter(r => r.referral_code).length || 0;
+      const activeReferrers = referrers.size;
+      const averageReferrals = activeReferrers > 0 ? totalReferrals / activeReferrers : 0;
+      
+      // Preparar top referrers
+      const topReferrersList = Array.from(referrers.values())
+        .map(r => ({
+          userName: r.userName,
+          referralCount: r.referralCount,
+          successRate: (r.successfulReferrals / r.referralCount) * 100
+        }))
+        .sort((a, b) => b.referralCount - a.referralCount)
+        .slice(0, 5);
+      
+      // Preparar análise de cadeias
+      const referralChainsList = Array.from(chains.entries())
+        .map(([chainLength, count]) => ({ chainLength, count }))
+        .sort((a, b) => a.chainLength - b.chainLength);
+      
+      // Preparar análise temporal
+      const timeBasedAnalysisList = Array.from(timeAnalysis.entries())
+        .map(([period, data]) => ({
+          period,
+          referralCount: data.referralCount,
+          conversionRate: (data.conversions / data.referralCount) * 100
+        }))
+        .sort((a, b) => new Date(b.period) - new Date(a.period));
+      
+      // Atualizar estado
+      setReferralData({
+        totalReferrals,
+        activeReferrers,
+        averageReferralsPerUser: averageReferrals,
+        conversionRate: totalReferrals > 0 ? 
+          (quizResults?.filter(r => r.referral_code && r.score >= 7).length || 0) / totalReferrals * 100 : 0,
+        topReferrers: topReferrersList,
+        referralChains: referralChainsList,
+        timeBasedAnalysis: timeBasedAnalysisList
+      });
+      
+    } catch (error) {
+      console.error('Erro ao processar dados de indicações:', error);
+    }
+  }, [dateFilter]);
+
   // Atualizar dados quando o filtro de data mudar
   useEffect(() => {
     fetchFunnelData();
-  }, [fetchFunnelData]);
+    fetchReferralData();
+  }, [fetchFunnelData, fetchReferralData]);
 
   // Manipular seleção de preset de data
   const handleDatePresetSelect = (preset: DateRange) => {
@@ -565,6 +707,19 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('referrals')}
+                className={`py-3 px-1 relative ${
+                  activeTab === 'referrals'
+                    ? 'text-cyan-400 font-medium'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                Análise de Indicações
+                {activeTab === 'referrals' && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -631,7 +786,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </table>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'detailed' ? (
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-medium text-white">Funil Completo (Passo a Passo)</h2>
@@ -767,6 +922,131 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-medium text-white">Análise do Sistema de Indicações</h2>
+                  <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+                    Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                  </div>
+                </div>
+
+                {/* Cards de Métricas de Indicação */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                    <h3 className="text-gray-400 text-sm mb-2">Total de Indicações</h3>
+                    <p className="text-2xl font-semibold text-white">{referralData.totalReferrals}</p>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                    <h3 className="text-gray-400 text-sm mb-2">Usuários Indicadores</h3>
+                    <p className="text-2xl font-semibold text-white">{referralData.activeReferrers}</p>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                    <h3 className="text-gray-400 text-sm mb-2">Média de Indicações/Usuário</h3>
+                    <p className="text-2xl font-semibold text-white">{referralData.averageReferralsPerUser.toFixed(2)}</p>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                    <h3 className="text-gray-400 text-sm mb-2">Taxa de Conversão</h3>
+                    <p className="text-2xl font-semibold text-white">{referralData.conversionRate.toFixed(2)}%</p>
+                  </div>
+                </div>
+
+                {/* Top Indicadores */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-white mb-4">Top Indicadores</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th className="py-3 px-4 text-left text-gray-400">Usuário</th>
+                          <th className="py-3 px-4 text-right text-gray-400">Indicações</th>
+                          <th className="py-3 px-4 text-right text-gray-400">Taxa de Sucesso</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {referralData.topReferrers.map((referrer, index) => (
+                          <tr key={index} className="border-b border-gray-700/50">
+                            <td className="py-3 px-4 text-white">{referrer.userName}</td>
+                            <td className="py-3 px-4 text-right text-gray-300">{referrer.referralCount}</td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`px-2 py-1 rounded ${
+                                referrer.successRate >= 70 ? 'bg-emerald-900/20 text-emerald-400' :
+                                referrer.successRate >= 50 ? 'bg-amber-900/20 text-amber-400' :
+                                'bg-rose-900/20 text-rose-400'
+                              }`}>
+                                {referrer.successRate.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Análise de Cadeias de Indicação */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-white mb-4">Cadeias de Indicação</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-700">
+                            <th className="py-2 text-left text-gray-400">Tamanho da Cadeia</th>
+                            <th className="py-2 text-right text-gray-400">Quantidade</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {referralData.referralChains.map((chain, index) => (
+                            <tr key={index} className="border-b border-gray-700/50">
+                              <td className="py-2 text-white">{chain.chainLength} níveis</td>
+                              <td className="py-2 text-right text-gray-300">{chain.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                        Gráfico de distribuição de cadeias será implementado em breve
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Análise Temporal */}
+                <div>
+                  <h3 className="text-lg font-medium text-white mb-4">Evolução das Indicações</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th className="py-3 px-4 text-left text-gray-400">Período</th>
+                          <th className="py-3 px-4 text-right text-gray-400">Indicações</th>
+                          <th className="py-3 px-4 text-right text-gray-400">Taxa de Conversão</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {referralData.timeBasedAnalysis.map((period, index) => (
+                          <tr key={index} className="border-b border-gray-700/50">
+                            <td className="py-3 px-4 text-white">{period.period}</td>
+                            <td className="py-3 px-4 text-right text-gray-300">{period.referralCount}</td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`px-2 py-1 rounded ${
+                                period.conversionRate >= 70 ? 'bg-emerald-900/20 text-emerald-400' :
+                                period.conversionRate >= 50 ? 'bg-amber-900/20 text-amber-400' :
+                                'bg-rose-900/20 text-rose-400'
+                              }`}>
+                                {period.conversionRate.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
