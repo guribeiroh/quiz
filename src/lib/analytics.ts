@@ -26,13 +26,13 @@ export async function trackUserEvent(event: Omit<UserEvent, 'timestamp'>) {
     
     console.log('Registrando evento:', eventWithTimestamp);
     
-    const { error } = await supabase
+    const result = await supabase
       .from('user_events')
       .insert(eventWithTimestamp);
     
-    if (error) {
-      console.error('Erro ao salvar evento:', error);
-      return { success: false, error };
+    if (result.error) {
+      console.error('Erro ao salvar evento:', result.error);
+      return { success: false, error: result.error };
     }
     
     return { success: true };
