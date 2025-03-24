@@ -13,6 +13,7 @@ interface TooltipProps {
   payload?: Array<{
     payload: FunnelData & {
       fill: string;
+      data?: FunnelData[];
     };
   }>;
 }
@@ -41,6 +42,8 @@ const GRADIENTS = [
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const firstStepUsers = data.data && data.data.length > 0 ? data.data[0].totalUsers : data.totalUsers;
+    
     return (
       <div className="bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-xl text-white transition-all duration-300 scale-100 transform">
         <h3 className="text-lg font-medium mb-2 text-cyan-400">{data.stepName}</h3>
@@ -59,11 +62,11 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
         </div>
         
         {/* Indicador de taxa de conversão em relação à primeira etapa */}
-        {data.stepName !== 'Tela Inicial' && (
+        {data.stepName !== 'Tela Inicial' && data.data && (
           <div className="mt-3 pt-2 border-t border-gray-700">
             <p className="text-xs text-gray-400">Taxa de conversão total:</p>
             <p className="text-cyan-400 font-medium">
-              {((data.totalUsers / payload[0].payload.data[0].totalUsers) * 100).toFixed(1)}%
+              {((data.totalUsers / firstStepUsers) * 100).toFixed(1)}%
             </p>
           </div>
         )}
