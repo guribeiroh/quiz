@@ -1,18 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaSync, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 import { FunnelStep } from './FunnelStep';
-import { FunnelAnalytics } from './FunnelAnalytics';
 import { FunnelChart } from './FunnelChart';
-import { DateFilter, DateRange } from './DateFilter';
-import { getQuizAnalytics } from '../../lib/analytics';
+import supabase from '@/lib/supabase';
+import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart } from 'react-icons/fi';
 
-interface AdminDashboardProps {
-  onLogout: () => void;
-}
-
-// Interface para os dados do funil
 export interface FunnelData {
   stepName: string;
   totalUsers: number;
@@ -20,237 +14,344 @@ export interface FunnelData {
   dropoffRate: number;
 }
 
-export function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [dataStatus, setDataStatus] = useState<string>('');
-  const [currentDateRange, setCurrentDateRange] = useState<DateRange | undefined>(undefined);
-  
-  const loadAnalytics = async (dateRange?: DateRange) => {
-    setIsLoading(true);
-    setError('');
-    setDataStatus('Carregando dados...');
-    
+  const [loading, setLoading] = useState(true);
+  const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('funnel');
+
+  // Carrega os dados do funil
+  const fetchFunnelData = async () => {
     try {
-      console.log('Iniciando carregamento de analytics...');
-      const data = await getQuizAnalytics(dateRange);
-      console.log('Dados recebidos:', data);
-      
-      setFunnelData(data);
-      setLastUpdate(new Date());
-      
-      // Verificar se temos dados reais
-      const totalUsers = data.reduce((sum, step) => sum + step.totalUsers, 0);
-      if (totalUsers === 0) {
-        setDataStatus(`Nenhum dado registrado ${dateRange ? 'no período selecionado' : 'ainda'}. ${!dateRange ? 'Interaja com o quiz para gerar dados.' : ''}`);
-      } else {
-        setDataStatus('');
+      setLoading(true);
+      const { data: events, error } = await supabase
+        .from('user_events')
+        .select('event_name, count(distinct user_id) as user_count')
+        .group('event_name');
+
+      if (error) throw error;
+
+      if (events) {
+        // Transformar eventos brutos em dados do funil
+        const welcomeCount = events.find(e => e.event_name === 'welcome')?.user_count || 0;
+        const questionsCount = events.find(e => e.event_name === 'questions')?.user_count || 0;
+        const captureCount = events.find(e => e.event_name === 'capture')?.user_count || 0;
+        const resultsCount = events.find(e => e.event_name === 'results')?.user_count || 0;
+
+        // Calcular taxas de retenção e abandono
+        const funnelSteps: FunnelData[] = [
+          {
+            stepName: 'Tela Inicial',
+            totalUsers: welcomeCount,
+            retentionRate: 100,
+            dropoffRate: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
+          },
+          {
+            stepName: 'Perguntas',
+            totalUsers: questionsCount,
+            retentionRate: welcomeCount > 0 ? (questionsCount / welcomeCount * 100) : 0,
+            dropoffRate: questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0
+          },
+          {
+            stepName: 'Captura de Dados',
+            totalUsers: captureCount,
+            retentionRate: questionsCount > 0 ? (captureCount / questionsCount * 100) : 0,
+            dropoffRate: captureCount > 0 ? ((captureCount - resultsCount) / captureCount * 100) : 0
+          },
+          {
+            stepName: 'Resultados',
+            totalUsers: resultsCount,
+            retentionRate: captureCount > 0 ? (resultsCount / captureCount * 100) : 0,
+            dropoffRate: 0
+          }
+        ];
+
+        setFunnelData(funnelSteps);
       }
-    } catch (err) {
-      console.error('Erro ao carregar analytics:', err);
-      setError('Falha ao carregar os dados. Tente novamente mais tarde.');
-      setDataStatus('Erro ao carregar dados.');
+
+      // Carregar dados de categorias
+      const { data: categories, error: catError } = await supabase
+        .from('quiz_results')
+        .select('category');
+
+      if (catError) throw catError;
+
+      if (categories) {
+        const categoryStats = categories.reduce((acc: Record<string, number>, item: any) => {
+          if (item.category) {
+            acc[item.category] = (acc[item.category] || 0) + 1;
+          }
+          return acc;
+        }, {});
+
+        const categoryData = Object.entries(categoryStats).map(([name, count]) => ({
+          name,
+          value: count
+        }));
+
+        setCategoryData(categoryData);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
-  // Handle da mudança de datas
-  const handleDateChange = (dateRange: DateRange) => {
-    console.log('Novo período selecionado:', dateRange);
-    setCurrentDateRange(dateRange);
-    loadAnalytics(dateRange);
-  };
-  
+
   useEffect(() => {
-    loadAnalytics();
-    
-    // Atualizar dados a cada 5 minutos
-    const intervalId = setInterval(() => loadAnalytics(currentDateRange), 5 * 60 * 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [currentDateRange]);
-  
+    // Verificar estado de autenticação
+    const storedAuth = localStorage.getItem('adminAuth');
+    if (storedAuth === 'true') {
+      setIsAuthenticated(true);
+      fetchFunnelData();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsAuthenticated(true);
+      localStorage.setItem('adminAuth', 'true');
+      fetchFunnelData();
+    } else {
+      setError('Senha incorreta');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-slate-900 flex justify-center items-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-slate-900 flex justify-center items-center p-4">
+        <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl p-8 shadow-xl border border-gray-700/50 w-full max-w-md">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-1">Painel de Administração</h2>
+            <p className="text-gray-400">Acesso restrito para administradores</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+                Senha de Acesso
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                placeholder="Digite a senha de acesso"
+              />
+              {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-cyan-500/20"
+            >
+              Acessar Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold text-emerald-400">Painel Analytics</h1>
-            <span className="text-gray-400 ml-2">• Quiz Anatomia Sem Medo</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => loadAnalytics(currentDateRange)}
-              disabled={isLoading}
-              className="text-sm flex items-center px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition"
-            >
-              <FaSync className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </button>
-            
-            <button
-              onClick={onLogout}
-              className="text-sm flex items-center px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md transition"
-            >
-              <FaSignOutAlt className="mr-2" />
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
-      
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        {/* Aviso sobre restrição de dados */}
-        <div className="bg-amber-950/40 border border-amber-700/50 rounded-lg p-4 mb-6 text-sm text-amber-400">
-          <div className="flex items-start">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <span>
-              <strong>Dados restritos:</strong> Este painel mostra apenas dados coletados a partir de <strong>24/03/2025 às 11:24</strong> (horário de Brasília). Qualquer atividade anterior a esta data/hora não está incluída nas análises.
-            </span>
-          </div>
-        </div>
-        
-        {/* Cabeçalho da seção com filtro de datas */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-slate-900 py-8 px-4 md:px-8">
+      <div className="max-w-6xl mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white">Funil de Conversão</h2>
-            <p className="text-gray-400 mt-1">
-              Análise do fluxo de usuários em cada etapa do quiz
-            </p>
+            <h1 className="text-3xl font-bold text-white">Dashboard de Analytics</h1>
+            <p className="text-gray-400 mt-1">Acompanhe o desempenho do funil de conversão</p>
           </div>
           
-          <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row items-end gap-4">
-            <DateFilter onDateChange={handleDateChange} />
-            
-            {lastUpdate && (
-              <div className="text-sm text-gray-400 mt-2 sm:mt-0">
-                <div className="flex items-center">
-                  <span className="mr-2">Última atualização:</span>
-                  <span className="bg-gray-800 px-3 py-1 rounded-md">
-                    {lastUpdate.toLocaleString('pt-BR')}
-                  </span>
-                </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('adminAuth');
+              setIsAuthenticated(false);
+            }}
+            className="mt-4 md:mt-0 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Sair
+          </button>
+        </header>
+
+        {/* Cards de Métricas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg mr-4">
+                <FiUsers className="text-2xl text-cyan-400" />
               </div>
-            )}
+              <div>
+                <p className="text-gray-400 text-sm">Total de Usuários</p>
+                <h3 className="text-white text-2xl font-semibold">
+                  {funnelData[0]?.totalUsers.toLocaleString('pt-BR') || 0}
+                </h3>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg mr-4">
+                <FiBarChart2 className="text-2xl text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Taxa de Conclusão</p>
+                <h3 className="text-white text-2xl font-semibold">
+                  {funnelData.length && funnelData[0].totalUsers > 0
+                    ? `${((funnelData[3]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(1)}%`
+                    : '0%'}
+                </h3>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg mr-4">
+                <FiTrendingUp className="text-2xl text-amber-400" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Perguntas Respondidas</p>
+                <h3 className="text-white text-2xl font-semibold">
+                  {funnelData[1]?.totalUsers.toLocaleString('pt-BR') || 0}
+                </h3>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-fuchsia-500/20 to-purple-500/20 rounded-lg mr-4">
+                <FiPieChart className="text-2xl text-fuchsia-400" />
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Resultados Exibidos</p>
+                <h3 className="text-white text-2xl font-semibold">
+                  {funnelData[3]?.totalUsers.toLocaleString('pt-BR') || 0}
+                </h3>
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* Exibição da faixa de datas selecionada, quando aplicável */}
-        {currentDateRange && (
-          <div className="bg-gray-800/50 rounded-lg p-3 mb-6 border border-gray-700/50">
-            <div className="flex items-center text-sm">
-              <span className="text-emerald-400 font-medium mr-2">Período selecionado:</span>
-              <span className="text-white">{currentDateRange.label}</span>
-              
-              {/* Botão para limpar filtro */}
-              <button 
-                onClick={() => {
-                  setCurrentDateRange(undefined);
-                  loadAnalytics();
-                }}
-                className="ml-auto text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-gray-300 transition-colors"
-              >
-                Limpar filtro
-              </button>
-            </div>
+
+        {/* Navegação das Abas */}
+        <div className="mb-6 border-b border-gray-700">
+          <div className="flex space-x-6">
+            <button
+              onClick={() => setActiveTab('funnel')}
+              className={`py-3 px-1 relative ${
+                activeTab === 'funnel'
+                  ? 'text-cyan-400 font-medium'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Funil de Conversão
+              {activeTab === 'funnel' && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('steps')}
+              className={`py-3 px-1 relative ${
+                activeTab === 'steps'
+                  ? 'text-cyan-400 font-medium'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Etapas Detalhadas
+              {activeTab === 'steps' && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+              )}
+            </button>
           </div>
-        )}
-        
-        {/* Conteúdo principal */}
-        {error ? (
-          <div className="bg-red-600/20 text-red-400 p-4 rounded-lg">
-            {error}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Gráfico principal do funil */}
-            <div className="lg:col-span-8 bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-white">Visualização do Funil</h3>
-                <button
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="text-gray-400 hover:text-white p-1"
-                >
-                  {isCollapsed ? <FaChevronDown /> : <FaChevronUp />}
-                </button>
+        </div>
+
+        {/* Conteúdo das Abas */}
+        <div className="mb-8">
+          {activeTab === 'funnel' ? (
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+              <h2 className="text-lg font-medium text-white mb-4">Visualização do Funil</h2>
+              <div className="h-80">
+                <FunnelChart data={funnelData} />
               </div>
-              
-              {!isCollapsed && (
-                <div className="h-[400px]">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-                    </div>
-                  ) : (
-                    funnelData.length > 0 ? (
-                      <FunnelChart data={funnelData} />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        {dataStatus}
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
             </div>
-            
-            {/* Resumo da análise */}
-            <div className="lg:col-span-4 bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <h3 className="text-lg font-medium text-white mb-4">Resumo Analítico</h3>
-              
-              {isLoading ? (
-                <div className="flex items-center justify-center h-[200px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
-                </div>
-              ) : (
-                dataStatus ? (
-                  <div className="text-gray-400 text-center p-4">{dataStatus}</div>
-                ) : (
-                  <FunnelAnalytics data={funnelData} />
-                )
-              )}
+          ) : (
+            <div className="space-y-4">
+              {funnelData.map((step, index) => (
+                <FunnelStep
+                  key={step.stepName}
+                  step={step}
+                  index={index}
+                  isLastStep={index === funnelData.length - 1}
+                />
+              ))}
             </div>
-            
-            {/* Detalhes do funil */}
-            <div className="lg:col-span-12 bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <h3 className="text-lg font-medium text-white mb-4">Etapas do Funil</h3>
-              
-              {isLoading ? (
-                <div className="flex items-center justify-center h-[200px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
-                </div>
-              ) : (
-                dataStatus ? (
-                  <div className="text-gray-400 text-center p-4">{dataStatus}</div>
-                ) : (
-                  <div className="space-y-4">
-                    {funnelData.map((step, index) => (
-                      <FunnelStep 
-                        key={index} 
-                        step={step} 
-                        index={index}
-                        isLastStep={index === funnelData.length - 1} 
-                      />
-                    ))}
-                  </div>
-                )
-              )}
+          )}
+        </div>
+
+        {/* Painel de Categorias */}
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+          <h2 className="text-lg font-medium text-white mb-4">Distribuição por Categoria</h2>
+          
+          {categoryData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="py-3 px-4 text-left text-gray-300 font-medium">Categoria</th>
+                    <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
+                    <th className="py-3 px-4 text-right text-gray-300 font-medium">Distribuição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categoryData.map((category) => {
+                    const totalResults = funnelData[3]?.totalUsers || 1; // Evitar divisão por zero
+                    const percentage = (category.value / totalResults) * 100;
+                    
+                    return (
+                      <tr key={category.name} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                        <td className="py-3 px-4 text-white">{category.name}</td>
+                        <td className="py-3 px-4 text-right text-gray-300">{category.value.toLocaleString('pt-BR')}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-end">
+                            <div className="mr-3 text-gray-300 text-sm font-medium">{percentage.toFixed(1)}%</div>
+                            <div className="w-24 bg-gray-700 rounded-full h-2">
+                              <div
+                                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-gray-400 text-center py-6">Nenhum dado de categoria disponível</p>
+          )}
+        </div>
       </div>
     </div>
   );
