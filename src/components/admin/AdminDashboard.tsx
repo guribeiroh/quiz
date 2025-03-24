@@ -115,6 +115,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
         // Buscar todos os eventos e filtrar no código
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = await supabase
           .from('user_events')
           .select('event_name, created_at');
@@ -208,6 +209,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
         // Buscar todas as categorias e filtrar no código
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const categoryResult: any = await supabase
           .from('quiz_results')
           .select('category, created_at');
