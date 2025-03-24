@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
-import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiFilter, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiFilter, FiRefreshCw, FiChevronDown } from 'react-icons/fi';
 
 export interface FunnelData {
   stepName: string;
@@ -26,7 +26,47 @@ interface EventCount {
 interface DateRange {
   startDate: string;
   endDate: string;
+  label?: string;
 }
+
+// Opções predefinidas de filtro de data
+const DATE_PRESETS: DateRange[] = [
+  {
+    label: 'Hoje',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    label: 'Últimos 7 dias',
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    label: 'Últimos 30 dias',
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    label: 'Este mês',
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    label: 'Mês passado',
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0],
+    endDate: new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().split('T')[0]
+  },
+  {
+    label: 'Últimos 90 dias',
+    startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    label: 'Este ano',
+    startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  }
+];
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -36,24 +76,24 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   
   // Estados para o filtro de data
   const [dateFilter, setDateFilter] = useState<DateRange>({
-    startDate: getLastMonthDate(),
-    endDate: getCurrentDate()
+    label: 'Últimos 30 dias',
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
   });
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Função para obter a data atual formatada YYYY-MM-DD
-  function getCurrentDate() {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  }
-
-  // Função para obter a data de um mês atrás
-  function getLastMonthDate() {
-    const today = new Date();
-    today.setMonth(today.getMonth() - 1);
-    return today.toISOString().split('T')[0];
-  }
+  const [customDateActive, setCustomDateActive] = useState(false);
+  
+  // Formatador de data para exibição amigável
+  const formatDateDisplay = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   // Carrega os dados do funil
   const fetchFunnelData = useCallback(async () => {
@@ -62,17 +102,41 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setIsRefreshing(true);
       const supabase = getSupabaseClient();
       
-      // Usando a função rpc para evitar erros de tipo
+      console.log('Buscando dados com filtro de data:', {
+        startDate: dateFilter.startDate,
+        endDate: dateFilter.endDate
+      });
+      
+      // Buscar eventos com filtro de data
       let events: Array<{ event_name: string; user_count: number }> = [];
       try {
-        // Tentamos usar a API do Supabase com filtro de data
-        const result = await supabase.rpc('get_event_counts', {
-          start_date: dateFilter.startDate,
-          end_date: dateFilter.endDate
-        });
-        events = Array.isArray(result) ? result : [];
+        // Consulta para obter contagem de eventos por nome de evento no período selecionado
+        const { data: eventsData, error } = await supabase
+          .from('user_events')
+          .select('event_name')
+          .gte('created_at', dateFilter.startDate + 'T00:00:00.000Z')
+          .lte('created_at', dateFilter.endDate + 'T23:59:59.999Z');
+          
+        if (error) {
+          console.error('Erro ao consultar eventos:', error);
+        } else if (eventsData) {
+          // Processar manualmente para contar eventos por tipo
+          const eventCounts: Record<string, number> = {};
+          eventsData.forEach(event => {
+            const name = event.event_name;
+            eventCounts[name] = (eventCounts[name] || 0) + 1;
+          });
+          
+          // Converter para o formato esperado
+          events = Object.entries(eventCounts).map(([name, count]) => ({
+            event_name: name,
+            user_count: count
+          }));
+          
+          console.log('Eventos encontrados:', events.length);
+        }
       } catch (supabaseError) {
-        console.error('Erro ao consultar eventos com rpc:', supabaseError);
+        console.error('Erro ao consultar eventos:', supabaseError);
       }
 
       // Alternativa: simulação de dados se a consulta falhar
@@ -85,10 +149,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       // Determinar quais dados usar (reais ou simulados)
       const eventData: EventCount[] = events.length > 0 
-        ? events.map(e => ({ 
-            event_name: e.event_name || '', 
-            user_count: typeof e.user_count === 'number' ? e.user_count : 0 
-          }))
+        ? events 
         : mockEvents;
 
       // Transformar eventos brutos em dados do funil
@@ -130,12 +191,19 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Carregar dados de categorias
       let categories: Array<{ category: string }> = [];
       try {
-        // Tentando buscar categorias com abordagem simplificada
-        const result = await supabase.rpc('get_categories', {
-          start_date: dateFilter.startDate,
-          end_date: dateFilter.endDate
-        });
-        categories = Array.isArray(result) ? result : [];
+        // Consulta para obter as categorias de resultados no período selecionado
+        const { data: categoriesData, error } = await supabase
+          .from('quiz_results')
+          .select('category')
+          .gte('created_at', dateFilter.startDate + 'T00:00:00.000Z')
+          .lte('created_at', dateFilter.endDate + 'T23:59:59.999Z');
+          
+        if (error) {
+          console.error('Erro ao consultar categorias:', error);
+        } else {
+          categories = categoriesData || [];
+          console.log('Categorias encontradas:', categories.length);
+        }
       } catch (catError) {
         console.error('Erro ao consultar categorias:', catError);
       }
@@ -155,6 +223,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         }));
 
         setCategoryData(categoryData);
+      } else {
+        // Sem dados, definir array vazio
+        setCategoryData([]);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -169,16 +240,33 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     fetchFunnelData();
   }, [fetchFunnelData]);
 
+  // Manipular seleção de preset de data
+  const handleDatePresetSelect = (preset: DateRange) => {
+    setDateFilter(preset);
+    setShowPresets(false);
+    setCustomDateActive(false);
+  };
+
+  // Manipular alteração de datas personalizadas
   const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setDateFilter(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      label: 'Personalizado'
     }));
+    setCustomDateActive(true);
   };
 
+  // Manipular atualização manual dos dados
   const handleRefresh = () => {
     fetchFunnelData();
+  };
+  
+  // Abrir o painel de datas personalizadas
+  const handleCustomDateClick = () => {
+    setCustomDateActive(true);
+    setShowPresets(false);
   };
 
   if (loading && !isRefreshing) {
@@ -202,13 +290,89 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
           
           <div className="flex flex-col md:flex-row items-start md:items-center mt-4 md:mt-0 gap-3">
-            <button
-              onClick={() => setShowDateFilter(!showDateFilter)}
-              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-            >
-              <FiCalendar className="mr-2" /> 
-              <span>Filtrar por data</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => { setShowDateFilter(!showDateFilter); setShowPresets(false); }}
+                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+              >
+                <FiCalendar className="mr-2" /> 
+                <span>{dateFilter.label || 'Filtrar por data'}</span>
+              </button>
+              
+              {showDateFilter && (
+                <div className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl z-10 p-3 border border-gray-700 animate-fadeIn">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-white font-medium">Período</h3>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowPresets(!showPresets)}
+                        className="text-cyan-400 text-sm flex items-center hover:text-cyan-300"
+                      >
+                        Predefinidos <FiChevronDown className={`ml-1 transition-transform ${showPresets ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showPresets && (
+                        <div className="absolute right-0 mt-2 w-56 bg-gray-900 rounded-lg shadow-lg z-20 border border-gray-700 py-1 animate-fadeIn">
+                          {DATE_PRESETS.map((preset, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleDatePresetSelect(preset)}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-800 transition-colors ${dateFilter.label === preset.label && !customDateActive ? 'text-cyan-400' : 'text-gray-300'}`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <button
+                            onClick={handleCustomDateClick}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-800 transition-colors ${customDateActive ? 'text-cyan-400' : 'text-gray-300'}`}
+                          >
+                            Personalizado
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="startDate" className="block text-xs text-gray-400 mb-1">Data inicial</label>
+                      <input
+                        type="date"
+                        id="startDate"
+                        name="startDate"
+                        value={dateFilter.startDate}
+                        onChange={handleDateFilterChange}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="endDate" className="block text-xs text-gray-400 mb-1">Data final</label>
+                      <input
+                        type="date"
+                        id="endDate"
+                        name="endDate"
+                        value={dateFilter.endDate}
+                        onChange={handleDateFilterChange}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">
+                      {formatDateDisplay(dateFilter.startDate)} até {formatDateDisplay(dateFilter.endDate)}
+                    </span>
+                    <button
+                      onClick={() => setShowDateFilter(false)}
+                      className="text-sm px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-500 transition-colors"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <button
               onClick={handleRefresh}
@@ -227,46 +391,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </button>
           </div>
         </header>
-
-        {/* Filtro de data */}
-        {showDateFilter && (
-          <div className="mb-6 p-4 bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl animate-fadeIn">
-            <div className="flex items-center mb-3">
-              <FiFilter className="text-cyan-500 mr-2" />
-              <h3 className="text-white font-medium">Filtrar por período</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="startDate" className="block text-sm text-gray-400 mb-1">Data inicial</label>
-                <input
-                  type="date"
-                  id="startDate"
-                  name="startDate"
-                  value={dateFilter.startDate}
-                  onChange={handleDateFilterChange}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="endDate" className="block text-sm text-gray-400 mb-1">Data final</label>
-                <input
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  value={dateFilter.endDate}
-                  onChange={handleDateFilterChange}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
-                />
-              </div>
-            </div>
-            <div className="mt-3 text-sm text-gray-400">
-              <span>Mostrando dados de </span>
-              <span className="text-cyan-400 font-medium">{new Date(dateFilter.startDate).toLocaleDateString('pt-BR')}</span>
-              <span> até </span>
-              <span className="text-cyan-400 font-medium">{new Date(dateFilter.endDate).toLocaleDateString('pt-BR')}</span>
-            </div>
-          </div>
-        )}
 
         {/* Cards de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -372,7 +496,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           ) : activeTab === 'funnel' ? (
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-              <h2 className="text-lg font-medium text-white mb-4">Visualização do Funil</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-medium text-white">Visualização do Funil</h2>
+                <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+                  Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                </div>
+              </div>
               <div className="h-80">
                 <FunnelChart data={funnelData} />
               </div>
@@ -408,7 +537,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {/* Painel de Categorias */}
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-          <h2 className="text-lg font-medium text-white mb-4">Distribuição por Categoria</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-white">Distribuição por Categoria</h2>
+            <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+              Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+            </div>
+          </div>
           
           {isRefreshing ? (
             <div className="flex items-center justify-center h-40">
@@ -454,7 +588,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </table>
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-6">Nenhum dado de categoria disponível</p>
+            <p className="text-gray-400 text-center py-6">Nenhum dado de categoria disponível para o período selecionado</p>
           )}
         </div>
       </div>
