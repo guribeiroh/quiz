@@ -111,11 +111,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       let events: Array<{ event_name: string; user_count: number }> = [];
       try {
         // Consulta para obter contagem de eventos por nome de evento no período selecionado
+        const startDate = dateFilter.startDate + 'T00:00:00.000Z';
+        const endDate = dateFilter.endDate + 'T23:59:59.999Z';
+        
         const { data: eventsData, error } = await supabase
           .from('user_events')
           .select('event_name, created_at')
-          .filter('created_at', 'gte', dateFilter.startDate + 'T00:00:00.000Z')
-          .filter('created_at', 'lte', dateFilter.endDate + 'T23:59:59.999Z');
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
           
         if (error) {
           console.error('Erro ao consultar eventos:', error);
@@ -192,11 +195,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       let categories: Array<{ category: string }> = [];
       try {
         // Consulta para obter as categorias de resultados no período selecionado
+        const startDate = dateFilter.startDate + 'T00:00:00.000Z';
+        const endDate = dateFilter.endDate + 'T23:59:59.999Z';
+        
         const { data: categoriesData, error } = await supabase
           .from('quiz_results')
           .select('category, created_at')
-          .filter('created_at', 'gte', dateFilter.startDate + 'T00:00:00.000Z')
-          .filter('created_at', 'lte', dateFilter.endDate + 'T23:59:59.999Z');
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
           
         if (error) {
           console.error('Erro ao consultar categorias:', error);
