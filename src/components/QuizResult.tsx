@@ -8,7 +8,7 @@ import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import Link from 'next/link';
 import { trackStepView, FunnelStep } from '../lib/analytics';
-import { generateSessionId, clearSessionId } from '../lib/sessionUtils';
+import { generateSessionId } from '../lib/sessionUtils';
 
 export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
@@ -23,19 +23,19 @@ export function QuizResult() {
     window.scrollTo(0, 0);
   }, []);
   
-  // Inicializar ID de sessão e rastrear visualização da página de resultados
+  // Rastrear visualização da página de resultados
   useEffect(() => {
     // Garantir que há um ID de sessão
-    const sid = generateSessionId();
+    const sessionId = generateSessionId();
     
     // Rastrear o evento de visualização
-    trackStepView(FunnelStep.QUIZ_RESULT, sid)
+    trackStepView(FunnelStep.QUIZ_RESULT, sessionId)
       .catch(error => console.error('Erro ao rastrear visualização:', error));
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'page_view', {
-        page_title: 'Quiz Result',
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'page_view', {
+        page_title: 'Quiz Results',
         page_location: window.location.href,
         page_path: window.location.pathname,
       });
@@ -295,52 +295,41 @@ export function QuizResult() {
     );
   };
   
-  // Função para copiar o código de referência
+  // Função para copiar o código de indicação para a área de transferência
   const copyReferralCode = () => {
-    if (referralCode) {
-      navigator.clipboard.writeText(referralCode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-      
-      // Rastrear evento de cópia do código
-      if (typeof window !== 'undefined' && 'gtag' in window) {
-        (window as any).gtag('event', 'copy_referral_code', {
-          referral_code: referralCode
-        });
-      }
-    }
+    if (!referralCode) return;
+    
+    navigator.clipboard.writeText(referralCode)
+      .then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+        
+        // Rastrear evento de cópia
+        if (typeof window !== 'undefined' && 'gtag' in window) {
+          (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'copy_referral_code', {
+            event_category: 'Engagement',
+            event_label: 'Referral'
+          });
+        }
+      })
+      .catch(err => console.error('Erro ao copiar código:', err));
   };
   
   // Função para compartilhar no WhatsApp
   const shareOnWhatsApp = () => {
+    const text = encodeURIComponent(`Acabei de fazer o Quiz Anatomia Sem Medo e acertei ${quizResult?.correctAnswers} de ${quizResult?.totalQuestions} questões! Desafio você a superar meu desempenho. Use meu código de indicação ${referralCode} para ganhar pontos extras: ${window.location.origin}?ref=${referralCode}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    
     // Rastrear evento de compartilhamento
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'share', {
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'share', {
         method: 'whatsapp',
-        score: quizResult?.score
+        content_type: 'quiz_result'
       });
     }
-    
-    const text = `🧠 Acabei de fazer o Quiz Anatomia Sem Medo e acertei ${quizResult?.correctAnswers} de ${quizResult?.totalQuestions} questões! Minha pontuação foi ${quizResult?.score}. Tente superar! 🏆`;
-    const url = 'https://anatomia-sem-medo.com.br';
-    window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n\n' + url)}`, '_blank');
   };
   
-  // Função para compartilhar no Twitter/X
-  const shareOnTwitter = () => {
-    // Rastrear evento de compartilhamento
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'share', {
-        method: 'twitter',
-        score: quizResult?.score
-      });
-    }
-    
-    const text = `🧠 Acabei de fazer o Quiz Anatomia Sem Medo e acertei ${quizResult?.correctAnswers} de ${quizResult?.totalQuestions} questões! Minha pontuação foi ${quizResult?.score}. Tente superar! 🏆`;
-    const url = 'https://anatomia-sem-medo.com.br';
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-  };
-  
+  // Função para abrir popup de compartilhamento nativo
   const handlePopupClick = () => {
     setShowPopup(false);
     

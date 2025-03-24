@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser, FaEnvelope, FaPhone, FaUniversity, FaBookReader, FaArrowRight, FaCheck } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { getReferralCodeOwner } from '../lib/supabase';
@@ -88,8 +88,8 @@ export function LeadCapture() {
     }
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'page_view', {
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'page_view', {
         page_title: 'Lead Capture',
         page_location: window.location.href,
         page_path: window.location.pathname,
@@ -103,8 +103,8 @@ export function LeadCapture() {
     
     try {
       // Rastrear evento de envio de formulário
-      if (typeof window !== 'undefined' && window.gtag) {
-        (window as {gtag: Function}).gtag('event', 'submit_lead_data', {
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'submit_lead_data', {
           event_category: 'Lead',
           event_label: 'Data Submission'
         });

@@ -11,19 +11,6 @@ interface FunnelChartProps {
 // Cores para os blocos do funil
 const colors = ['#10b981', '#22c55e', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899'];
 
-// Definindo a interface para os dados dos rótulos personalizados
-interface LabelProps {
-  cx: number;
-  cy: number;
-  midAngle: number;
-  innerRadius: number;
-  outerRadius: number;
-  percent: number;
-  index: number;
-  name: string;
-  value: number;
-}
-
 export function FunnelChart({ data }: FunnelChartProps) {
   // Formatar dados para o gráfico
   const chartData = useMemo(() => {
@@ -37,7 +24,10 @@ export function FunnelChart({ data }: FunnelChartProps) {
   }, [data]);
   
   // Customização do tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { 
+    active?: boolean; 
+    payload?: Array<{ payload: { name: string; users: string; retention: string } }> 
+  }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -49,32 +39,6 @@ export function FunnelChart({ data }: FunnelChartProps) {
       );
     }
     return null;
-  };
-  
-  // Função para renderizar rótulos personalizados
-  const renderCustomizedLabel = (props: LabelProps) => {
-    const { cx, cy, midAngle, outerRadius, percent, name } = props;
-    
-    // Calcular a posição do texto
-    const RADIAN = Math.PI / 180;
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const x = cx + (outerRadius + 30) * cos;
-    const y = cy + (outerRadius + 30) * sin;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
-    
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        textAnchor={textAnchor} 
-        fill="#fff" 
-        fontSize={12}
-        dominantBaseline="central"
-      >
-        {`${name}: ${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
   };
 
   if (!data || data.length === 0) {
@@ -96,8 +60,11 @@ export function FunnelChart({ data }: FunnelChartProps) {
           labelLine={false}
         >
           <LabelList
-            position="center"
-            content={renderCustomizedLabel}
+            position="right"
+            fill="#fff"
+            stroke="none"
+            dataKey="name"
+            formatter={(name: string) => `${name}`}
           />
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.fill} />

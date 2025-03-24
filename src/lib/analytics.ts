@@ -1,6 +1,5 @@
 import { getSupabaseClient } from './supabase';
 import { FunnelData } from '../components/admin/AdminDashboard';
-import { QuizResultData } from './supabase';
 import { DateRange } from '../components/admin/DateFilter';
 
 // Interface para os dados de eventos de usuário

@@ -23,8 +23,8 @@ export function Welcome() {
       .catch(error => console.error('Erro ao rastrear visualização:', error));
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'page_view', {
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'page_view', {
         page_title: 'Welcome',
         page_location: window.location.href,
         page_path: window.location.pathname,

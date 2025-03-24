@@ -24,8 +24,8 @@ export function Question() {
       .catch(error => console.error('Erro ao rastrear visualização:', error));
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'page_view', {
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'page_view', {
         page_title: 'Question',
         page_location: window.location.href,
         page_path: window.location.pathname,
@@ -94,8 +94,8 @@ export function Question() {
     selectAnswer(index);
     
     // Rastrear evento de resposta
-    if (typeof window !== 'undefined' && window.gtag) {
-      (window as {gtag: Function}).gtag('event', 'answer_question', {
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as {gtag: (event: string, action: string, params: Record<string, unknown>) => void}).gtag('event', 'answer_question', {
         question_id: currentQuestion?.id,
         is_correct: index === currentQuestion?.correctAnswer,
         time_remaining: timeRemaining

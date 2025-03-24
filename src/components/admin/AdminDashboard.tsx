@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaUserFriends, FaChartLine, FaSignOutAlt, FaSync, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaSignOutAlt, FaSync, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { FunnelStep } from './FunnelStep';
 import { FunnelAnalytics } from './FunnelAnalytics';
 import { FunnelChart } from './FunnelChart';
