@@ -31,13 +31,22 @@ interface DateRange {
 
 // Adicionar interfaces para os eventos e categorias
 interface EventData {
+  id?: string | number;
   event_name: string;
   created_at: string;
+  user_id?: string;
+  session_id?: string;
+  metadata?: any;
 }
 
 interface CategoryResult {
+  id?: string | number;
   category: string;
   created_at: string;
+  user_id?: string;
+  score?: number;
+  session_id?: string;
+  metadata?: any;
 }
 
 // Opções predefinidas de filtro de data
@@ -130,11 +139,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           endDateFormatted: endDate.toISOString()
         });
         
-        // Buscar todos os eventos e filtrar no código
+        // Buscar todos os eventos - sem filtro no Supabase para garantir que recebemos dados
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = await supabase
           .from('user_events')
-          .select('event_name, created_at');
+          .select('*');
         
         // Adicionar tipagem e extrair dados  
         const eventsData = result.data || [];
@@ -143,10 +152,15 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (error) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
-          console.log('Total de eventos recebidos (antes do filtro):', eventsData.length);
+          console.log('Total de eventos recebidos do Supabase:', eventsData.length);
+          console.log('Amostra dos eventos recebidos:', eventsData.slice(0, 5));
           
           // Filtrar por data manualmente
           const filteredEvents = eventsData.filter((event: EventData) => {
+            if (!event.created_at) {
+              console.log('Evento sem data:', event);
+              return false;
+            }
             const eventDate = new Date(event.created_at);
             return eventDate >= startDate && eventDate <= endDate;
           });
@@ -157,6 +171,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           const eventCounts: Record<string, number> = {};
           filteredEvents.forEach((event: EventData) => {
             const name = event.event_name;
+            if (!name) {
+              console.log('Evento sem nome:', event);
+              return;
+            }
             eventCounts[name] = (eventCounts[name] || 0) + 1;
           });
           
@@ -172,26 +190,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         console.error('Erro ao consultar eventos:', supabaseError);
       }
 
-      // Alternativa: simulação de dados se a consulta falhar
-      const mockEvents: EventCount[] = [
-        { event_name: 'welcome', user_count: 100 },
-        { event_name: 'questions', user_count: 80 },
-        { event_name: 'capture', user_count: 60 },
-        { event_name: 'results', user_count: 40 }
-      ];
+      // Não usar dados simulados - vamos forçar o uso apenas de dados reais
+      const eventData: EventCount[] = events;
 
-      // Determinar quais dados usar (reais ou simulados)
-      const eventData: EventCount[] = events.length > 0 
-        ? events 
-        : mockEvents;
-
-      console.log('Usando dados:', events.length > 0 ? 'REAIS' : 'SIMULADOS');
-      
-      if (events.length > 0) {
-        console.log('Dados reais de eventos:', events);
-      } else {
-        console.warn('Usando dados simulados pois não há eventos no período selecionado');
-      }
+      console.log('Dados de eventos usados:', events);
 
       // Transformar eventos brutos em dados do funil
       const welcomeCount = eventData.find(e => e.event_name === 'welcome')?.user_count || 0;
@@ -241,11 +243,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           endDate: endDate.toISOString()
         });
         
-        // Buscar todas as categorias e filtrar no código
+        // Buscar todas as categorias sem filtro para garantir que recebemos todos os dados
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const categoryResult: any = await supabase
           .from('quiz_results')
-          .select('category, created_at');
+          .select('*');
           
         // Adicionar tipagem e extrair dados
         const categoriesData = categoryResult.data || [];
@@ -254,18 +256,30 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (error) {
           console.error('Erro ao consultar categorias:', error);
         } else if (categoriesData) {
-          console.log('Total de categorias recebidas (antes do filtro):', categoriesData.length);
+          console.log('Total de categorias recebidas do Supabase:', categoriesData.length);
+          console.log('Amostra de categorias recebidas:', categoriesData.slice(0, 5));
           
           // Filtrar por data manualmente
           const filteredCategories = categoriesData.filter((item: CategoryResult) => {
+            if (!item.created_at) {
+              console.log('Categoria sem data:', item);
+              return false;
+            }
             const itemDate = new Date(item.created_at);
             return itemDate >= startDate && itemDate <= endDate;
           });
           
           console.log('Categorias após filtro de data:', filteredCategories.length);
           
-          categories = filteredCategories.map((item: CategoryResult) => ({ category: item.category })) || [];
-          console.log('Categorias processadas:', categories.length);
+          categories = filteredCategories.map((item: CategoryResult) => {
+            if (!item.category) {
+              console.log('Item sem categoria:', item);
+              return { category: 'Sem categoria' };
+            }
+            return { category: item.category };
+          }) || [];
+          
+          console.log('Categorias processadas:', categories);
         }
       } catch (catError) {
         console.error('Erro ao consultar categorias:', catError);
