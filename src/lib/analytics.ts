@@ -135,18 +135,17 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .from('user_events')
         .select('session_id, step, timestamp');
       
-      // Usar operador de acesso condicional para evitar erro de tipo
-      if (userEventQuery?.error) {
-        console.error('Erro ao buscar eventos:', userEventQuery.error);
-      } else if (userEventQuery?.data) {
-        // Filtrar os resultados manualmente para garantir compatibilidade
-        allEvents = userEventQuery.data
-          .filter(event => 
-            event.timestamp >= startTimestamp && 
-            event.timestamp <= endTimestamp
-          )
-          .sort((a, b) => a.timestamp - b.timestamp);
-      }
+      // Evitar verificar a propriedade error diretamente
+      // Usar apenas data com coalescência nula
+      const events = userEventQuery?.data ?? [];
+      
+      // Filtrar os resultados manualmente para garantir compatibilidade
+      allEvents = events
+        .filter(event => 
+          event.timestamp >= startTimestamp && 
+          event.timestamp <= endTimestamp
+        )
+        .sort((a, b) => a.timestamp - b.timestamp);
     } catch (error) {
       console.error('Erro ao buscar eventos de usuário:', error);
     }
@@ -175,17 +174,16 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .from('quiz_results')
         .select('*');
       
-      // Usar operador de acesso condicional para evitar erro de tipo
-      if (quizResultsQuery?.error) {
-        console.error('Erro ao buscar quiz completos:', quizResultsQuery.error);
-      } else if (quizResultsQuery?.data) {
-        // Filtrar os resultados manualmente para compatibilidade
-        completedQuizzes = quizResultsQuery.data
-          .filter(quiz => {
-            const createdAt = quiz.created_at ? new Date(quiz.created_at).getTime() : 0;
-            return createdAt >= startTimestamp && createdAt <= endTimestamp;
-          });
-      }
+      // Evitar verificar a propriedade error diretamente
+      // Usar apenas data com coalescência nula
+      const quizzes = quizResultsQuery?.data ?? [];
+      
+      // Filtrar os resultados manualmente para compatibilidade
+      completedQuizzes = quizzes
+        .filter(quiz => {
+          const createdAt = quiz.created_at ? new Date(quiz.created_at).getTime() : 0;
+          return createdAt >= startTimestamp && createdAt <= endTimestamp;
+        });
     } catch (error) {
       console.error('Erro ao buscar quiz completos:', error);
     }
