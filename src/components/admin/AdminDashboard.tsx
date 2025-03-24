@@ -347,21 +347,25 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Buscar todos os resultados do quiz com dados de indicação
       const { data: quizResults, error } = await supabase
         .from('quiz_results')
-        .select('*')
-        .eq('created_at', startDate.toISOString())
-        .eq('created_at', endDate.toISOString());
+        .select('*');
         
       if (error) {
         console.error('Erro ao buscar dados de indicações:', error);
         return;
       }
+
+      // Filtrar por data no lado do cliente
+      const filteredResults = quizResults?.filter(result => {
+        const resultDate = new Date(result.created_at);
+        return resultDate >= startDate && resultDate <= endDate;
+      });
       
       // Processar dados para análise
       const referrers = new Map();
       const chains = new Map();
       const timeAnalysis = new Map();
       
-      quizResults?.forEach(result => {
+      filteredResults?.forEach(result => {
         // Contar indicações por usuário
         if (result.referral_code) {
           const referrer = result.referred_by;
