@@ -133,7 +133,8 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
       // Construir a consulta baseada no filtro de data
       const userEventQuery = await supabase
         .from('user_events')
-        .select('session_id, step, timestamp');
+        .select('session_id, step, timestamp')
+        .select();
       
       if (userEventQuery.error) {
         console.error('Erro ao buscar eventos:', userEventQuery.error);
@@ -172,7 +173,8 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
       // Consultar quiz_results
       const quizResultsQuery = await supabase
         .from('quiz_results')
-        .select('*');
+        .select('*')
+        .select();
       
       if (quizResultsQuery.error) {
         console.error('Erro ao buscar quiz completos:', quizResultsQuery.error);
