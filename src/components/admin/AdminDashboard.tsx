@@ -110,21 +110,27 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Buscar eventos com filtro de data
       let events: Array<{ event_name: string; user_count: number }> = [];
       try {
-        // Consulta para obter contagem de eventos por nome de evento no período selecionado
-        const startDate = dateFilter.startDate + 'T00:00:00.000Z';
-        const endDate = dateFilter.endDate + 'T23:59:59.999Z';
+        // Consulta para obter eventos e filtrar pelo lado do cliente
+        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
+        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
+        // Buscar todos os eventos e filtrar no código
         const { data: eventsData, error } = await supabase
           .from('user_events')
-          .select('event_name')
-          .or(`created_at.gte.${startDate},created_at.lte.${endDate}`);
+          .select('event_name, created_at');
           
         if (error) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
+          // Filtrar por data manualmente
+          const filteredEvents = eventsData.filter(event => {
+            const eventDate = new Date(event.created_at);
+            return eventDate >= startDate && eventDate <= endDate;
+          });
+          
           // Processar manualmente para contar eventos por tipo
           const eventCounts: Record<string, number> = {};
-          eventsData.forEach(event => {
+          filteredEvents.forEach(event => {
             const name = event.event_name;
             eventCounts[name] = (eventCounts[name] || 0) + 1;
           });
@@ -193,19 +199,25 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Carregar dados de categorias
       let categories: Array<{ category: string }> = [];
       try {
-        // Consulta para obter as categorias de resultados no período selecionado
-        const startDate = dateFilter.startDate + 'T00:00:00.000Z';
-        const endDate = dateFilter.endDate + 'T23:59:59.999Z';
+        // Consulta para obter categorias e filtrar manualmente
+        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
+        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
+        // Buscar todas as categorias e filtrar no código
         const { data: categoriesData, error } = await supabase
           .from('quiz_results')
-          .select('category')
-          .or(`created_at.gte.${startDate},created_at.lte.${endDate}`);
+          .select('category, created_at');
           
         if (error) {
           console.error('Erro ao consultar categorias:', error);
-        } else {
-          categories = categoriesData?.map(item => ({ category: item.category })) || [];
+        } else if (categoriesData) {
+          // Filtrar por data manualmente
+          const filteredCategories = categoriesData.filter(item => {
+            const itemDate = new Date(item.created_at);
+            return itemDate >= startDate && itemDate <= endDate;
+          });
+          
+          categories = filteredCategories.map(item => ({ category: item.category })) || [];
           console.log('Categorias encontradas:', categories.length);
         }
       } catch (catError) {
