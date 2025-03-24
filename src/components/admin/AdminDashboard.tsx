@@ -13,11 +13,6 @@ export interface FunnelData {
   dropoffRate: number;
 }
 
-interface CategoryData {
-  name: string;
-  value: number;
-}
-
 interface EventCount {
   event_name: string;
   user_count: number;
@@ -39,25 +34,6 @@ interface EventData {
   session_id?: string;
   timestamp?: string;
   page?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: any;
-}
-
-interface CategoryResult {
-  id?: string | number;
-  user_name: string;
-  user_email: string;
-  score: string;
-  correct_answers: number;
-  total_questions: number;
-  total_time_spent: number;
-  average_time_per_question: string;
-  completion_rhythm: string;
-  created_at: string;
-  referral_code?: string;
-  referred_by?: string | null;
-  referral_bonus_points?: number;
-  user_phone?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 }
@@ -104,7 +80,6 @@ const DATE_PRESETS: DateRange[] = [
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
-  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [activeTab, setActiveTab] = useState('funnel');
   
   // Estados para o filtro de data
@@ -255,88 +230,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       ];
 
       setFunnelData(funnelSteps);
-
-      // Carregar dados de categorias
-      let categories: Array<{ category: string }> = [];
-      try {
-        // Consulta para obter categorias e filtrar manualmente
-        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
-        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
-        
-        console.log('Consultando categorias no período:', {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
-        });
-        
-        // Buscar todas as categorias sem filtro para garantir que recebemos todos os dados
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const categoryResult: any = await supabase
-          .from('quiz_results')
-          .select('*');
-        
-        console.log('Resposta completa de categorias:', categoryResult);
-          
-        // Adicionar tipagem e extrair dados
-        const categoriesData = categoryResult.data || [];
-        const error = categoryResult.error;
-          
-        if (error) {
-          console.error('Erro ao consultar categorias:', error);
-        } else if (categoriesData) {
-          console.log('Total de categorias recebidas do Supabase:', categoriesData.length);
-          console.log('Amostra de categorias recebidas:', categoriesData.slice(0, 5));
-          
-          // Verificar estrutura individual do primeiro registro (se existir)
-          if (categoriesData.length > 0) {
-            console.log('Estrutura da primeira categoria:', Object.keys(categoriesData[0]));
-            console.log('Primeira categoria completa:', categoriesData[0]);
-          }
-          
-          // Filtrar por data manualmente
-          const filteredCategories = categoriesData.filter((item: CategoryResult) => {
-            if (!item.created_at) {
-              console.log('Categoria sem data:', item);
-              return false;
-            }
-            const itemDate = new Date(item.created_at);
-            return itemDate >= startDate && itemDate <= endDate;
-          });
-          
-          console.log('Categorias após filtro de data:', filteredCategories.length);
-          
-          categories = filteredCategories.map((item: CategoryResult) => {
-            if (!item.completion_rhythm) {
-              console.log('Item sem completion_rhythm:', item);
-              return { category: 'Sem classificação' };
-            }
-            return { category: item.completion_rhythm };
-          }) || [];
-          
-          console.log('Categorias processadas:', categories);
-        }
-      } catch (catError) {
-        console.error('Erro ao consultar categorias:', catError);
-      }
-      
-      if (categories.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const categoryStats = categories.reduce((acc: Record<string, number>, item: any) => {
-          if (item.category) {
-            acc[item.category] = (acc[item.category] || 0) + 1;
-          }
-          return acc;
-        }, {});
-
-        const categoryData = Object.entries(categoryStats).map(([name, count]) => ({
-          name,
-          value: count as number
-        }));
-
-        setCategoryData(categoryData);
-      } else {
-        // Sem dados, definir array vazio
-        setCategoryData([]);
-      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
