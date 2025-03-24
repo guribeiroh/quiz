@@ -345,16 +345,16 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
       
       // Buscar todos os resultados do quiz com dados de indicação
-      const result = await supabase
+      const { data: quizResults } = await supabase
         .from('quiz_results')
-        .select('*');
-        
-      if (result.error) {
-        console.error('Erro ao buscar dados de indicações:', result.error);
-        return;
-      }
-
-      const quizResults = result.data;
+        .select('*')
+        .then(response => {
+          if (response.error) {
+            console.error('Erro ao buscar dados de indicações:', response.error);
+            return { data: [] };
+          }
+          return response;
+        });
 
       // Filtrar por data no lado do cliente
       const filteredResults = quizResults?.filter(result => {
