@@ -442,7 +442,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           referralCount: data.referralCount,
           conversionRate: (data.conversions / data.referralCount) * 100
         }))
-        .sort((a, b) => new Date(b.period) - new Date(a.period));
+        .sort((a, b) => new Date(b.period).getTime() - new Date(a.period).getTime());
       
       // Atualizar estado
       setReferralData({
