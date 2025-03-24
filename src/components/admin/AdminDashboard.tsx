@@ -113,9 +113,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         // Consulta para obter contagem de eventos por nome de evento no período selecionado
         const { data: eventsData, error } = await supabase
           .from('user_events')
-          .select('event_name')
-          .gte('created_at', dateFilter.startDate + 'T00:00:00.000Z')
-          .lte('created_at', dateFilter.endDate + 'T23:59:59.999Z');
+          .select('event_name, created_at')
+          .filter('created_at', 'gte', dateFilter.startDate + 'T00:00:00.000Z')
+          .filter('created_at', 'lte', dateFilter.endDate + 'T23:59:59.999Z');
           
         if (error) {
           console.error('Erro ao consultar eventos:', error);
@@ -194,14 +194,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         // Consulta para obter as categorias de resultados no período selecionado
         const { data: categoriesData, error } = await supabase
           .from('quiz_results')
-          .select('category')
-          .gte('created_at', dateFilter.startDate + 'T00:00:00.000Z')
-          .lte('created_at', dateFilter.endDate + 'T23:59:59.999Z');
+          .select('category, created_at')
+          .filter('created_at', 'gte', dateFilter.startDate + 'T00:00:00.000Z')
+          .filter('created_at', 'lte', dateFilter.endDate + 'T23:59:59.999Z');
           
         if (error) {
           console.error('Erro ao consultar categorias:', error);
         } else {
-          categories = categoriesData || [];
+          categories = categoriesData?.map(item => ({ category: item.category })) || [];
           console.log('Categorias encontradas:', categories.length);
         }
       } catch (catError) {
