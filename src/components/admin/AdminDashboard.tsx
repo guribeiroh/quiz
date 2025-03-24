@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -20,10 +19,6 @@ interface CategoryData {
 }
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
@@ -87,6 +82,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       if (catError) throw catError;
 
       if (categories) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const categoryStats = categories.reduce((acc: Record<string, number>, item: any) => {
           if (item.category) {
             acc[item.category] = (acc[item.category] || 0) + 1;
