@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
-import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiFilter, FiRefreshCw, FiChevronDown } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiRefreshCw, FiChevronDown } from 'react-icons/fi';
 
 export interface FunnelData {
   stepName: string;
