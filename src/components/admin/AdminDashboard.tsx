@@ -348,14 +348,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const result = await supabase
         .from('quiz_results')
         .select('*')
-        .single();
+        .limit(1000); // Limitando a 1000 resultados para evitar sobrecarga
 
       if (result.error) {
         console.error('Erro ao buscar dados de indicações:', result.error);
         return;
       }
 
-      const quizResults = result.data ? [result.data] : [];
+      const quizResults = result.data || [];
 
       // Filtrar por data no lado do cliente
       const filteredResults = quizResults.filter(result => {
