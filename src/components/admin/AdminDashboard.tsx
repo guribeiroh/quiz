@@ -68,6 +68,15 @@ interface EventData {
   metadata?: any;
 }
 
+interface QuizResult {
+  id: string;
+  created_at: string;
+  referral_code?: string;
+  referred_by?: string;
+  user_name?: string;
+  score?: number;
+}
+
 // Opções predefinidas de filtro de data
 const DATE_PRESETS: DateRange[] = [
   {
@@ -355,7 +364,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         return;
       }
 
-      const quizResults = result.data || [];
+      const quizResults = (result.data || []) as QuizResult[];
 
       // Filtrar por data no lado do cliente
       const filteredResults = quizResults.filter(result => {
