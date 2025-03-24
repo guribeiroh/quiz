@@ -147,6 +147,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           .from('user_events')
           .select('*');
         
+        // Verificar o objeto de resposta completo
+        console.log('Resposta completa do Supabase:', result);
+        
         // Adicionar tipagem e extrair dados  
         const eventsData = result.data || [];
         const error = result.error;
@@ -155,7 +158,16 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
           console.log('Total de eventos recebidos do Supabase:', eventsData.length);
-          console.log('Amostra dos eventos recebidos:', eventsData.slice(0, 5));
+          console.log('Amostra dos eventos recebidos (primeiros 5):', eventsData.slice(0, 5));
+          
+          // Verificar estrutura individual do primeiro registro (se existir)
+          if (eventsData.length > 0) {
+            console.log('Estrutura do primeiro evento:', Object.keys(eventsData[0]));
+            console.log('Primeiro evento completo:', eventsData[0]);
+          } else {
+            console.warn('Nenhum evento encontrado na tabela user_events');
+            console.warn('Verificando se a tabela existe ou está vazia');
+          }
           
           // Filtrar por data manualmente
           const filteredEvents = eventsData.filter((event: EventData) => {
@@ -188,8 +200,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           
           console.log('Eventos agrupados por tipo:', events);
         }
-      } catch (supabaseError) {
-        console.error('Erro ao consultar eventos:', supabaseError);
+      } catch (error) {
+        console.error('Erro ao consultar eventos:', error);
       }
 
       // Não usar dados simulados - vamos forçar o uso apenas de dados reais
@@ -250,6 +262,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const categoryResult: any = await supabase
           .from('quiz_results')
           .select('*');
+        
+        console.log('Resposta completa de categorias:', categoryResult);
           
         // Adicionar tipagem e extrair dados
         const categoriesData = categoryResult.data || [];
@@ -260,6 +274,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         } else if (categoriesData) {
           console.log('Total de categorias recebidas do Supabase:', categoriesData.length);
           console.log('Amostra de categorias recebidas:', categoriesData.slice(0, 5));
+          
+          // Verificar estrutura individual do primeiro registro (se existir)
+          if (categoriesData.length > 0) {
+            console.log('Estrutura da primeira categoria:', Object.keys(categoriesData[0]));
+            console.log('Primeira categoria completa:', categoriesData[0]);
+          }
           
           // Filtrar por data manualmente
           const filteredCategories = categoriesData.filter((item: CategoryResult) => {
