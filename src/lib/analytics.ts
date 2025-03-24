@@ -69,6 +69,43 @@ export enum FunnelStep {
 // Função para obter dados analíticos do funil
 export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelData[]> {
   try {
+    // Se estamos no ambiente de servidor durante build, retornar dados vazios
+    if (typeof window === 'undefined') {
+      console.log('Ambiente de servidor detectado, retornando dados vazios');
+      return [
+        {
+          stepName: FunnelStep.WELCOME,
+          totalUsers: 0,
+          retentionRate: 0,
+          dropoffRate: 0
+        },
+        {
+          stepName: FunnelStep.QUESTION,
+          totalUsers: 0,
+          retentionRate: 0,
+          dropoffRate: 0
+        },
+        {
+          stepName: FunnelStep.LEAD_CAPTURE,
+          totalUsers: 0,
+          retentionRate: 0,
+          dropoffRate: 0
+        },
+        {
+          stepName: FunnelStep.QUIZ_RESULT,
+          totalUsers: 0,
+          retentionRate: 0,
+          dropoffRate: 0
+        },
+        {
+          stepName: 'Quiz Completo',
+          totalUsers: 0,
+          retentionRate: 0,
+          dropoffRate: 0
+        }
+      ];
+    }
+    
     const supabase = getSupabaseClient();
     
     console.log('Buscando dados de analytics do Supabase...');
@@ -91,22 +128,26 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
     // Garantir que a data inicial nunca seja anterior à data mínima
     startTimestamp = Math.max(startTimestamp, timestampMinimo);
     
-    // Construir a consulta baseada no filtro de data
-    let query = supabase
-      .from('user_events')
-      .select('session_id, step, timestamp')
-      .gte('timestamp', startTimestamp) // Sempre aplica o filtro de data mínima
-      .lte('timestamp', endTimestamp);
-    
-    // Ordenar por timestamp
-    query = query.order('timestamp', { ascending: true });
-    
-    // Executar a consulta
-    const { data: allEvents, error: eventsError } = await query;
-    
-    if (eventsError) {
-      console.error('Erro ao buscar eventos:', eventsError);
-      throw new Error('Erro ao buscar dados de analytics');
+    let allEvents = [];
+    try {
+      // Construir a consulta baseada no filtro de data
+      const userEventQuery = await supabase
+        .from('user_events')
+        .select('session_id, step, timestamp');
+      
+      if (userEventQuery.error) {
+        console.error('Erro ao buscar eventos:', userEventQuery.error);
+      } else {
+        // Filtrar os resultados manualmente para garantir compatibilidade
+        allEvents = (userEventQuery.data || [])
+          .filter(event => 
+            event.timestamp >= startTimestamp && 
+            event.timestamp <= endTimestamp
+          )
+          .sort((a, b) => a.timestamp - b.timestamp);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar eventos de usuário:', error);
     }
     
     console.log('Total de eventos encontrados:', allEvents?.length || 0);
@@ -126,24 +167,28 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
       }
     });
     
-    // Construir a consulta para quiz_results com filtro de data
-    let quizResultsQuery = supabase
-      .from('quiz_results')
-      .select('*');
+    let completedQuizzes = [];
+    try {
+      // Consultar quiz_results
+      const startDate = new Date(startTimestamp).toISOString();
+      const endDate = new Date(endTimestamp).toISOString();
       
-    // Adicionar filtro de data
-    const startDate = new Date(startTimestamp).toISOString();
-    const endDate = new Date(endTimestamp).toISOString();
-    
-    quizResultsQuery = quizResultsQuery
-      .gte('created_at', startDate)
-      .lte('created_at', endDate);
-    
-    // Executar a consulta
-    const { data: completedQuizzes, error: completedError } = await quizResultsQuery;
-    
-    if (completedError) {
-      console.error('Erro ao buscar quiz completos:', completedError);
+      const quizResultsQuery = await supabase
+        .from('quiz_results')
+        .select('*');
+      
+      if (quizResultsQuery.error) {
+        console.error('Erro ao buscar quiz completos:', quizResultsQuery.error);
+      } else {
+        // Filtrar os resultados manualmente para compatibilidade
+        completedQuizzes = (quizResultsQuery.data || [])
+          .filter(quiz => {
+            const createdAt = quiz.created_at ? new Date(quiz.created_at).getTime() : 0;
+            return createdAt >= startTimestamp && createdAt <= endTimestamp;
+          });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar quiz completos:', error);
     }
     
     // Contadores para cada etapa
