@@ -348,7 +348,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const { data: quizResults, error } = await supabase
         .from('quiz_results')
         .select('*')
-        .range('created_at', startDate.toISOString(), endDate.toISOString());
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
         
       if (error) {
         console.error('Erro ao buscar dados de indicações:', error);
