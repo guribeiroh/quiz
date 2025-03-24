@@ -32,21 +32,32 @@ interface DateRange {
 // Adicionar interfaces para os eventos e categorias
 interface EventData {
   id?: string | number;
-  event_name: string;
+  event_type: string;
+  step: string;
   created_at: string;
-  user_id?: string;
+  user_id?: string | null;
   session_id?: string;
+  timestamp?: string;
+  page?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 }
 
 interface CategoryResult {
   id?: string | number;
-  category: string;
+  user_name: string;
+  user_email: string;
+  score: string;
+  correct_answers: number;
+  total_questions: number;
+  total_time_spent: number;
+  average_time_per_question: string;
+  completion_rhythm: string;
   created_at: string;
-  user_id?: string;
-  score?: number;
-  session_id?: string;
+  referral_code?: string;
+  referred_by?: string | null;
+  referral_bonus_points?: number;
+  user_phone?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 }
@@ -181,24 +192,24 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           
           console.log('Eventos após filtro de data:', filteredEvents.length);
           
-          // Processar manualmente para contar eventos por tipo
+          // Processar manualmente para contar eventos por tipo de etapa
           const eventCounts: Record<string, number> = {};
           filteredEvents.forEach((event: EventData) => {
-            const name = event.event_name;
-            if (!name) {
-              console.log('Evento sem nome:', event);
+            const step = event.step;
+            if (!step) {
+              console.log('Evento sem step:', event);
               return;
             }
-            eventCounts[name] = (eventCounts[name] || 0) + 1;
+            eventCounts[step] = (eventCounts[step] || 0) + 1;
           });
           
           // Converter para o formato esperado
-          events = Object.entries(eventCounts).map(([name, count]) => ({
-            event_name: name,
+          events = Object.entries(eventCounts).map(([step, count]) => ({
+            event_name: step,
             user_count: count
           }));
           
-          console.log('Eventos agrupados por tipo:', events);
+          console.log('Eventos agrupados por step:', events);
         }
       } catch (error) {
         console.error('Erro ao consultar eventos:', error);
@@ -210,10 +221,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       console.log('Dados de eventos usados:', events);
 
       // Transformar eventos brutos em dados do funil
-      const welcomeCount = eventData.find(e => e.event_name === 'welcome')?.user_count || 0;
-      const questionsCount = eventData.find(e => e.event_name === 'questions')?.user_count || 0;
-      const captureCount = eventData.find(e => e.event_name === 'capture')?.user_count || 0;
-      const resultsCount = eventData.find(e => e.event_name === 'results')?.user_count || 0;
+      const welcomeCount = eventData.find(e => e.event_name === 'Tela de Boas-vindas')?.user_count || 0;
+      const questionsCount = eventData.find(e => e.event_name === 'Respondendo Perguntas')?.user_count || 0;
+      const captureCount = eventData.find(e => e.event_name === 'Captura de Dados')?.user_count || 0;
+      const resultsCount = eventData.find(e => e.event_name === 'Resultados')?.user_count || 0;
 
       // Calcular taxas de retenção e abandono
       const funnelSteps: FunnelData[] = [
@@ -294,11 +305,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           console.log('Categorias após filtro de data:', filteredCategories.length);
           
           categories = filteredCategories.map((item: CategoryResult) => {
-            if (!item.category) {
-              console.log('Item sem categoria:', item);
-              return { category: 'Sem categoria' };
+            if (!item.completion_rhythm) {
+              console.log('Item sem completion_rhythm:', item);
+              return { category: 'Sem classificação' };
             }
-            return { category: item.category };
+            return { category: item.completion_rhythm };
           }) || [];
           
           console.log('Categorias processadas:', categories);
