@@ -90,6 +90,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [detailedFunnelData, setDetailedFunnelData] = useState<DetailedFunnelData[]>([]);
+  const [eventData, setEventData] = useState<EventCount[]>([]);
   const [activeTab, setActiveTab] = useState('funnel');
   
   // Estados para o filtro de data
@@ -202,6 +203,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       // Não usar dados simulados - vamos forçar o uso apenas de dados reais
       const eventData: EventCount[] = events;
+      setEventData(events);
 
       console.log('Dados de eventos usados:', events);
 
