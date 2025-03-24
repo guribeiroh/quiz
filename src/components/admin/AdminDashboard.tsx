@@ -125,6 +125,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
         const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
+        console.log('Consultando eventos no período:', {
+          startDateFormatted: startDate.toISOString(),
+          endDateFormatted: endDate.toISOString()
+        });
+        
         // Buscar todos os eventos e filtrar no código
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = await supabase
@@ -138,11 +143,15 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (error) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
+          console.log('Total de eventos recebidos (antes do filtro):', eventsData.length);
+          
           // Filtrar por data manualmente
           const filteredEvents = eventsData.filter((event: EventData) => {
             const eventDate = new Date(event.created_at);
             return eventDate >= startDate && eventDate <= endDate;
           });
+          
+          console.log('Eventos após filtro de data:', filteredEvents.length);
           
           // Processar manualmente para contar eventos por tipo
           const eventCounts: Record<string, number> = {};
@@ -157,7 +166,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             user_count: count
           }));
           
-          console.log('Eventos encontrados:', events.length);
+          console.log('Eventos agrupados por tipo:', events);
         }
       } catch (supabaseError) {
         console.error('Erro ao consultar eventos:', supabaseError);
@@ -175,6 +184,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const eventData: EventCount[] = events.length > 0 
         ? events 
         : mockEvents;
+
+      console.log('Usando dados:', events.length > 0 ? 'REAIS' : 'SIMULADOS');
+      
+      if (events.length > 0) {
+        console.log('Dados reais de eventos:', events);
+      } else {
+        console.warn('Usando dados simulados pois não há eventos no período selecionado');
+      }
 
       // Transformar eventos brutos em dados do funil
       const welcomeCount = eventData.find(e => e.event_name === 'welcome')?.user_count || 0;
@@ -219,6 +236,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
         const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
         
+        console.log('Consultando categorias no período:', {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        });
+        
         // Buscar todas as categorias e filtrar no código
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const categoryResult: any = await supabase
@@ -232,14 +254,18 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (error) {
           console.error('Erro ao consultar categorias:', error);
         } else if (categoriesData) {
+          console.log('Total de categorias recebidas (antes do filtro):', categoriesData.length);
+          
           // Filtrar por data manualmente
           const filteredCategories = categoriesData.filter((item: CategoryResult) => {
             const itemDate = new Date(item.created_at);
             return itemDate >= startDate && itemDate <= endDate;
           });
           
+          console.log('Categorias após filtro de data:', filteredCategories.length);
+          
           categories = filteredCategories.map((item: CategoryResult) => ({ category: item.category })) || [];
-          console.log('Categorias encontradas:', categories.length);
+          console.log('Categorias processadas:', categories.length);
         }
       } catch (catError) {
         console.error('Erro ao consultar categorias:', catError);
