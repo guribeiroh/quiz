@@ -117,8 +117,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const { data: eventsData, error } = await supabase
           .from('user_events')
           .select('event_name, created_at')
-          .gt('created_at', startDate)
-          .lt('created_at', endDate);
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
           
         if (error) {
           console.error('Erro ao consultar eventos:', error);
@@ -201,8 +201,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const { data: categoriesData, error } = await supabase
           .from('quiz_results')
           .select('category, created_at')
-          .gt('created_at', startDate)
-          .lt('created_at', endDate);
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
           
         if (error) {
           console.error('Erro ao consultar categorias:', error);
