@@ -5,7 +5,6 @@ import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
 import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart } from 'react-icons/fi';
-import { PostgrestFilterBuilder } from '@supabase/supabase-js';
 
 export interface FunnelData {
   stepName: string;
