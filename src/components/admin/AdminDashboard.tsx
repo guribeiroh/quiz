@@ -100,13 +100,18 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setFunnelData(funnelSteps);
 
       // Carregar dados de categorias
-      const { data: categories, error: catError } = await supabase
-        .from('quiz_results')
-        .select('category');
-
-      if (catError) throw catError;
-
-      if (categories) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let categories: any[] = [];
+      try {
+        // Tentando buscar categorias com abordagem simplificada
+        const result = await supabase.rpc('get_categories', {});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        categories = Array.isArray(result) ? result : [];
+      } catch (catError) {
+        console.error('Erro ao consultar categorias:', catError);
+      }
+      
+      if (categories.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const categoryStats = categories.reduce((acc: Record<string, number>, item: any) => {
           if (item.category) {
