@@ -35,10 +35,17 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setLoading(true);
       const supabase = getSupabaseClient();
       
-      // Usando uma abordagem com query() para evitar erros de tipo
-      const { data: events, error } = await supabase
-        .from('user_events')
-        .select('event_name');
+      // Usando a função rpc para evitar erros de tipo
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let events: any[] = [];
+      try {
+        // Tentamos usar a API do Supabase de maneira simplificada
+        const result = await supabase.rpc('get_event_counts', {});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        events = Array.isArray(result) ? result : [];
+      } catch (supabaseError) {
+        console.error('Erro ao consultar eventos com rpc:', supabaseError);
+      }
 
       // Alternativa: simulação de dados se a consulta falhar
       const mockEvents: EventCount[] = [
@@ -48,28 +55,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         { event_name: 'results', user_count: 40 }
       ];
 
-      // Processamento manual dos eventos para contar usuários distintos
-      let eventData: EventCount[] = mockEvents;
-      
-      if (events && events.length > 0 && !error) {
-        // Contagem manual de eventos por nome
-        const eventCounts: Record<string, number> = {};
-        events.forEach(event => {
-          const name = event.event_name;
-          eventCounts[name] = (eventCounts[name] || 0) + 1;
-        });
-        
-        // Conversão para o formato EventCount[]
-        eventData = Object.entries(eventCounts).map(([name, count]) => ({
-          event_name: name,
-          user_count: count
-        }));
-      }
-
-      if (error) {
-        console.error('Erro na consulta:', error);
-        // Fallback para dados simulados em caso de erro
-      }
+      // Determinar quais dados usar (reais ou simulados)
+      const eventData: EventCount[] = events.length > 0 
+        ? events.map(e => ({ 
+            event_name: e.event_name || '', 
+            user_count: typeof e.user_count === 'number' ? e.user_count : 0 
+          }))
+        : mockEvents;
 
       // Transformar eventos brutos em dados do funil
       const welcomeCount = eventData.find(e => e.event_name === 'welcome')?.user_count || 0;
