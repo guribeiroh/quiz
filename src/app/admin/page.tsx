@@ -17,7 +17,7 @@ export default function AdminPage() {
   
   const handleLogin = (password: string) => {
     // Senha simples para demonstração - em produção, use uma autenticação segura
-    if (password === 'admin123') {
+    if (password === '@conaes0713') {
       localStorage.setItem('adminAuth', 'true');
       setIsAuthenticated(true);
       return true;
