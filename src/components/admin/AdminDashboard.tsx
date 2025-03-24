@@ -36,6 +36,7 @@ interface EventData {
   created_at: string;
   user_id?: string;
   session_id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 }
 
@@ -46,6 +47,7 @@ interface CategoryResult {
   user_id?: string;
   score?: number;
   session_id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 }
 
