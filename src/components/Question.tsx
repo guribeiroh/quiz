@@ -13,21 +13,19 @@ export function Question() {
   const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer, timeRemaining } = useQuiz();
   const [showExplanation, setShowExplanation] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
   
-  // Inicializar ID de sessão e rastrear visualização da página de perguntas
+  // Inicializar rastreamento e registrar visualização da página de perguntas
   useEffect(() => {
     // Garantir que há um ID de sessão
     const sid = generateSessionId();
-    setSessionId(sid);
     
     // Rastrear o evento de visualização
     trackStepView(FunnelStep.QUESTION, sid)
       .catch(error => console.error('Erro ao rastrear visualização:', error));
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && 'gtag' in window) {
-      (window as any).gtag('event', 'page_view', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'page_view', {
         page_title: 'Question',
         page_location: window.location.href,
         page_path: window.location.pathname,
@@ -96,10 +94,10 @@ export function Question() {
     selectAnswer(index);
     
     // Rastrear evento de resposta
-    if (typeof window !== 'undefined' && 'gtag' in window) {
-      (window as any).gtag('event', 'answer_question', {
-        question_id: currentQuestion.id,
-        is_correct: index === currentQuestion.correctAnswer,
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'answer_question', {
+        question_id: currentQuestion?.id,
+        is_correct: index === currentQuestion?.correctAnswer,
         time_remaining: timeRemaining
       });
     }

@@ -73,7 +73,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const intervalId = setInterval(() => loadAnalytics(currentDateRange), 5 * 60 * 1000);
     
     return () => clearInterval(intervalId);
-  }, []);
+  }, [currentDateRange]);
   
   return (
     <div className="min-h-screen bg-gray-900">

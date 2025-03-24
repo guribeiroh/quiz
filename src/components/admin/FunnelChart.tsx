@@ -11,6 +11,19 @@ interface FunnelChartProps {
 // Cores para os blocos do funil
 const colors = ['#10b981', '#22c55e', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899'];
 
+// Definindo a interface para os dados dos rótulos personalizados
+interface LabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+  index: number;
+  name: string;
+  value: number;
+}
+
 export function FunnelChart({ data }: FunnelChartProps) {
   // Formatar dados para o gráfico
   const chartData = useMemo(() => {
@@ -38,34 +51,29 @@ export function FunnelChart({ data }: FunnelChartProps) {
     return null;
   };
   
-  // Customização do label
-  const CustomizedLabel = (props: any) => {
-    const { x, y, width, height, value, index } = props;
-    const radius = 10;
-
+  // Função para renderizar rótulos personalizados
+  const renderCustomizedLabel = (props: LabelProps) => {
+    const { cx, cy, midAngle, outerRadius, percent, name } = props;
+    
+    // Calcular a posição do texto
+    const RADIAN = Math.PI / 180;
+    const sin = Math.sin(-RADIAN * midAngle);
+    const cos = Math.cos(-RADIAN * midAngle);
+    const x = cx + (outerRadius + 30) * cos;
+    const y = cy + (outerRadius + 30) * sin;
+    const textAnchor = cos >= 0 ? 'start' : 'end';
+    
     return (
-      <g>
-        <text
-          x={x + width / 2}
-          y={y + height / 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-xs font-medium"
-          fill="#fff"
-        >
-          {chartData[index]?.name}
-        </text>
-        <text
-          x={x + width / 2}
-          y={y + height / 2 + 15}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-xs"
-          fill="#d1d5db"
-        >
-          {chartData[index]?.users}
-        </text>
-      </g>
+      <text 
+        x={x} 
+        y={y} 
+        textAnchor={textAnchor} 
+        fill="#fff" 
+        fontSize={12}
+        dominantBaseline="central"
+      >
+        {`${name}: ${(percent * 100).toFixed(0)}%`}
+      </text>
     );
   };
 
@@ -89,7 +97,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
         >
           <LabelList
             position="center"
-            content={<CustomizedLabel />}
+            content={renderCustomizedLabel}
           />
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.fill} />

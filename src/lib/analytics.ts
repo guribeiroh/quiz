@@ -11,7 +11,7 @@ interface UserEvent {
   timestamp: number;
   page: string;
   step: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Função para rastrear eventos de usuário

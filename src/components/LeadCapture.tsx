@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser, FaEnvelope, FaPhone, FaUniversity, FaBookReader } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser, FaEnvelope, FaPhone, FaUniversity, FaBookReader, FaArrowRight, FaCheck } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { getReferralCodeOwner } from '../lib/supabase';
@@ -88,8 +88,8 @@ export function LeadCapture() {
     }
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && 'gtag' in window) {
-      (window as any).gtag('event', 'page_view', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'page_view', {
         page_title: 'Lead Capture',
         page_location: window.location.href,
         page_path: window.location.pathname,
@@ -103,12 +103,10 @@ export function LeadCapture() {
     
     try {
       // Rastrear evento de envio de formulário
-      if (typeof window !== 'undefined' && 'gtag' in window) {
-        (window as any).gtag('event', 'lead_capture', {
-          occupation: data.occupation,
-          has_phone: Boolean(data.phone),
-          is_student: Boolean(data.college && data.semester),
-          used_referral: Boolean(data.referralCode)
+      if (typeof window !== 'undefined' && window.gtag) {
+        (window as {gtag: Function}).gtag('event', 'submit_lead_data', {
+          event_category: 'Lead',
+          event_label: 'Data Submission'
         });
       }
       

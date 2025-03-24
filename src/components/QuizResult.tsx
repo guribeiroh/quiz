@@ -23,31 +23,24 @@ export function QuizResult() {
     window.scrollTo(0, 0);
   }, []);
   
-  // Rastrear visualização da página de resultados
+  // Inicializar ID de sessão e rastrear visualização da página de resultados
   useEffect(() => {
     // Garantir que há um ID de sessão
-    const sessionId = generateSessionId();
+    const sid = generateSessionId();
     
     // Rastrear o evento de visualização
-    trackStepView(FunnelStep.QUIZ_RESULT, sessionId)
+    trackStepView(FunnelStep.QUIZ_RESULT, sid)
       .catch(error => console.error('Erro ao rastrear visualização:', error));
       
     // Registrar evento de pageview
-    if (typeof window !== 'undefined' && 'gtag' in window) {
-      (window as any).gtag('event', 'quiz_completed', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'page_view', {
         page_title: 'Quiz Result',
         page_location: window.location.href,
         page_path: window.location.pathname,
-        score: quizResult?.score,
-        correct_answers: quizResult?.correctAnswers,
-        total_questions: quizResult?.totalQuestions,
-        total_time: quizResult?.totalTimeSpent
       });
     }
-    
-    // Limpar ID de sessão após completar o funil
-    clearSessionId();
-  }, [quizResult]);
+  }, []);
   
   useEffect(() => {
     // Mostrar o popup após 1 segundo
@@ -320,18 +313,32 @@ export function QuizResult() {
   
   // Função para compartilhar no WhatsApp
   const shareOnWhatsApp = () => {
-    if (referralCode) {
-      const shareText = `Acabei de fazer o Quiz de Anatomia e quero te desafiar! Use meu código ${referralCode} para ganhar pontos extras. Faça o quiz em: https://anatomiasemmedo.vercel.app/?ref=${referralCode}`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-      
-      // Rastrear evento de compartilhamento
-      if (typeof window !== 'undefined' && 'gtag' in window) {
-        (window as any).gtag('event', 'share_quiz', {
-          method: 'whatsapp',
-          referral_code: referralCode
-        });
-      }
+    // Rastrear evento de compartilhamento
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'share', {
+        method: 'whatsapp',
+        score: quizResult?.score
+      });
     }
+    
+    const text = `🧠 Acabei de fazer o Quiz Anatomia Sem Medo e acertei ${quizResult?.correctAnswers} de ${quizResult?.totalQuestions} questões! Minha pontuação foi ${quizResult?.score}. Tente superar! 🏆`;
+    const url = 'https://anatomia-sem-medo.com.br';
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n\n' + url)}`, '_blank');
+  };
+  
+  // Função para compartilhar no Twitter/X
+  const shareOnTwitter = () => {
+    // Rastrear evento de compartilhamento
+    if (typeof window !== 'undefined' && window.gtag) {
+      (window as {gtag: Function}).gtag('event', 'share', {
+        method: 'twitter',
+        score: quizResult?.score
+      });
+    }
+    
+    const text = `🧠 Acabei de fazer o Quiz Anatomia Sem Medo e acertei ${quizResult?.correctAnswers} de ${quizResult?.totalQuestions} questões! Minha pontuação foi ${quizResult?.score}. Tente superar! 🏆`;
+    const url = 'https://anatomia-sem-medo.com.br';
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
   
   const handlePopupClick = () => {

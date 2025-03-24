@@ -21,8 +21,8 @@ export interface UserEventRecord {
   timestamp: number;
   page: string;
   step: string;
-  metadata?: Record<string, any>;
-  created_at: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
 }
 
 export interface ReferralCodeRecord {
