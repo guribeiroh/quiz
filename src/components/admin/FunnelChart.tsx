@@ -8,8 +8,21 @@ interface FunnelChartProps {
   data: FunnelData[];
 }
 
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: {
+      name: string;
+      retentionRate: number;
+      dropoffRate: number;
+    };
+  }>;
+  label?: string;
+}
+
 // Custom tooltip que mostra dados do usuário no hover
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-xl text-white">
@@ -36,15 +49,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+  index?: number;
+  data: FunnelData[];
+}
+
 // Custom label para cada step do funil
-const CustomLabel = ({ x, y, width, height, value, index, data }: any) => {
-  if (width < 20) return null; // Não exibir label se o bloco for muito pequeno
+const CustomLabel = ({ x, y, width, height, value, index, data }: CustomLabelProps) => {
+  if (!width || width < 20 || index === undefined || value === undefined) return null; // Não exibir label se o bloco for muito pequeno
   
   return (
     <g>
       <text
-        x={x + width / 2}
-        y={y + height / 2 - 10}
+        x={x ? x + width / 2 : 0}
+        y={y ? y + (height ? height / 2 - 10 : 0) : 0}
         textAnchor="middle"
         dominantBaseline="middle"
         className="fill-white font-medium"
@@ -52,8 +75,8 @@ const CustomLabel = ({ x, y, width, height, value, index, data }: any) => {
         {data[index].stepName}
       </text>
       <text
-        x={x + width / 2}
-        y={y + height / 2 + 10}
+        x={x ? x + width / 2 : 0}
+        y={y ? y + (height ? height / 2 + 10 : 0) : 0}
         textAnchor="middle"
         dominantBaseline="middle"
         className="fill-gray-300 text-sm"

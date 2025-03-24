@@ -14,6 +14,11 @@ export interface FunnelData {
   dropoffRate: number;
 }
 
+interface CategoryData {
+  name: string;
+  value: number;
+}
+
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,7 +26,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [activeTab, setActiveTab] = useState('funnel');
 
   // Carrega os dados do funil
@@ -91,7 +96,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         const categoryData = Object.entries(categoryStats).map(([name, count]) => ({
           name,
-          value: count
+          value: count as number
         }));
 
         setCategoryData(categoryData);

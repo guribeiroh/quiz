@@ -1,6 +1,6 @@
 'use client';
 
-import { FaUserFriends, FaChevronDown, FaUserSlash, FaArrowDown } from 'react-icons/fa';
+import { FaUserFriends, FaArrowDown } from 'react-icons/fa';
 import { FunnelData } from './AdminDashboard';
 
 interface FunnelStepProps {
