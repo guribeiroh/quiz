@@ -38,7 +38,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Realizando a consulta com SQL bruto para evitar o erro de tipo
       const { data: events, error } = await supabase
         .from('user_events')
-        .select('event_name, count(distinct user_id) as user_count')
         .select('event_name, count(distinct user_id) as user_count');
 
       // Alternativa: simulação de dados se group() não estiver disponível
