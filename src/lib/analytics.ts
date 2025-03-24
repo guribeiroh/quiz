@@ -28,7 +28,8 @@ export async function trackUserEvent(event: Omit<UserEvent, 'timestamp'>) {
     
     const result = await supabase
       .from('user_events')
-      .insert(eventWithTimestamp as unknown as Record<string, unknown>);
+      .insert(eventWithTimestamp as unknown as Record<string, unknown>)
+      .select();
     
     if (result.error) {
       console.error('Erro ao salvar evento:', result.error);
