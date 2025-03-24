@@ -136,14 +136,17 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .select('session_id, step, timestamp');
       
       // Tratar como any para evitar erros de tipo
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = (userEventQuery as any)?.data || [];
       
       // Filtrar os resultados manualmente para garantir compatibilidade
       allEvents = data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((event: any) => 
           event.timestamp >= startTimestamp && 
           event.timestamp <= endTimestamp
         )
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .sort((a: any, b: any) => a.timestamp - b.timestamp);
     } catch (error) {
       console.error('Erro ao buscar eventos de usuário:', error);
@@ -174,10 +177,12 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .select('*');
       
       // Tratar como any para evitar erros de tipo
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = (quizResultsQuery as any)?.data || [];
       
       // Filtrar os resultados manualmente para compatibilidade
       completedQuizzes = data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((quiz: any) => {
           const createdAt = quiz.created_at ? new Date(quiz.created_at).getTime() : 0;
           return createdAt >= startTimestamp && createdAt <= endTimestamp;
