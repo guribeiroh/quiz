@@ -5,6 +5,7 @@ export interface QuizQuestion {
   correctAnswer: number;
   explanation: string;
   difficulty: 'fácil' | 'médio' | 'difícil';
+  imageUrl?: string;
 }
 
 export interface UserAnswer {
