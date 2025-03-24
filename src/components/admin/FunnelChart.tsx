@@ -74,14 +74,25 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null;
 };
 
-const CustomLabel = (props: any) => {
-  const { x, y, width, height, value, name, index } = props;
+// Definindo interface para as props do CustomLabel
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+  name?: string;
+}
+
+// Componente de rótulos personalizados para o funil
+const CustomLabel = (props: CustomLabelProps) => {
+  const { x, y, width, height, value, name } = props;
   
   return (
     <g>
       <text
-        x={x + (width / 2)}
-        y={y + (height / 2) - 12}
+        x={x ? x + (width ? width / 2 : 0) : 0}
+        y={y ? y + (height ? height / 2 - 12 : 0) : 0}
         textAnchor="middle"
         dominantBaseline="middle"
         className="fill-white font-medium text-sm"
@@ -89,13 +100,13 @@ const CustomLabel = (props: any) => {
         {name}
       </text>
       <text
-        x={x + (width / 2)}
-        y={y + (height / 2) + 12}
+        x={x ? x + (width ? width / 2 : 0) : 0}
+        y={y ? y + (height ? height / 2 + 12 : 0) : 0}
         textAnchor="middle"
         dominantBaseline="middle"
         className="fill-gray-300 font-medium text-sm"
       >
-        {value.toLocaleString('pt-BR')}
+        {value ? value.toLocaleString('pt-BR') : '0'}
       </text>
     </g>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FunnelStep } from './FunnelStep';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -56,22 +56,20 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   }
 
   // Carrega os dados do funil
-  const fetchFunnelData = async () => {
+  const fetchFunnelData = useCallback(async () => {
     try {
       setLoading(true);
       setIsRefreshing(true);
       const supabase = getSupabaseClient();
       
       // Usando a função rpc para evitar erros de tipo
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let events: any[] = [];
+      let events: Array<{ event_name: string; user_count: number }> = [];
       try {
         // Tentamos usar a API do Supabase com filtro de data
         const result = await supabase.rpc('get_event_counts', {
           start_date: dateFilter.startDate,
           end_date: dateFilter.endDate
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         events = Array.isArray(result) ? result : [];
       } catch (supabaseError) {
         console.error('Erro ao consultar eventos com rpc:', supabaseError);
@@ -130,15 +128,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setFunnelData(funnelSteps);
 
       // Carregar dados de categorias
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let categories: any[] = [];
+      let categories: Array<{ category: string }> = [];
       try {
         // Tentando buscar categorias com abordagem simplificada
         const result = await supabase.rpc('get_categories', {
           start_date: dateFilter.startDate,
           end_date: dateFilter.endDate
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         categories = Array.isArray(result) ? result : [];
       } catch (catError) {
         console.error('Erro ao consultar categorias:', catError);
@@ -166,12 +162,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       setLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [dateFilter]);
 
   // Atualizar dados quando o filtro de data mudar
   useEffect(() => {
     fetchFunnelData();
-  }, [dateFilter]);
+  }, [fetchFunnelData]);
 
   const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
