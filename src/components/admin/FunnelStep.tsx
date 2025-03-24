@@ -55,7 +55,7 @@ export function FunnelStep({ step, index, isLastStep }: FunnelStepProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-gray-300">Taxa de Retenção</div>
               <div className="flex items-center bg-emerald-900/20 px-2 py-1 rounded-md">
-                <span className="text-emerald-400 font-semibold">{step.retentionRate}%</span>
+                <span className="text-emerald-400 font-semibold">{step.retentionRate.toFixed(2)}%</span>
               </div>
             </div>
             <div className="w-full bg-gray-700/50 rounded-full h-2.5 overflow-hidden">
@@ -71,7 +71,7 @@ export function FunnelStep({ step, index, isLastStep }: FunnelStepProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-medium text-gray-300">Taxa de Abandono</div>
               <div className="flex items-center bg-red-900/20 px-2 py-1 rounded-md">
-                <span className="text-rose-400 font-semibold">{step.dropoffRate}%</span>
+                <span className="text-rose-400 font-semibold">{step.dropoffRate.toFixed(2)}%</span>
               </div>
             </div>
             <div className="w-full bg-gray-700/50 rounded-full h-2.5 overflow-hidden">

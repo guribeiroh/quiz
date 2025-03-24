@@ -527,7 +527,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <p className="text-gray-400 text-sm">Taxa de Conclusão</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData.length && funnelData[0].totalUsers > 0
-                    ? `${((funnelData[3]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(1)}%`
+                    ? `${((funnelData[3]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(2)}%`
                     : '0%'}
                 </h3>
               </div>
@@ -624,8 +624,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <p className="text-sm text-gray-400">{step.stepName}</p>
                     <p className="text-xl font-semibold text-white mt-1">{step.totalUsers.toLocaleString('pt-BR')}</p>
                     <div className="flex justify-between mt-2 text-xs">
-                      <span className="text-emerald-400">↑ {step.retentionRate.toFixed(1)}%</span>
-                      <span className="text-rose-400">↓ {step.dropoffRate.toFixed(1)}%</span>
+                      <span className="text-emerald-400">↑ {step.retentionRate.toFixed(2)}%</span>
+                      <span className="text-rose-400">↓ {step.dropoffRate.toFixed(2)}%</span>
                     </div>
                   </div>
                 ))}
@@ -642,63 +642,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 />
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Painel de Categorias */}
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-white">Distribuição por Categoria</h2>
-            <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-              Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
-            </div>
-          </div>
-          
-          {isRefreshing ? (
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-pulse flex flex-col items-center">
-                <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-3"></div>
-                <p className="text-gray-400 text-sm">Atualizando dados...</p>
-              </div>
-            </div>
-          ) : categoryData.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="py-3 px-4 text-left text-gray-300 font-medium">Categoria</th>
-                    <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
-                    <th className="py-3 px-4 text-right text-gray-300 font-medium">Distribuição</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryData.map((category) => {
-                    const totalResults = funnelData[3]?.totalUsers || 1; // Evitar divisão por zero
-                    const percentage = (category.value / totalResults) * 100;
-                    
-                    return (
-                      <tr key={category.name} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
-                        <td className="py-3 px-4 text-white">{category.name}</td>
-                        <td className="py-3 px-4 text-right text-gray-300">{category.value.toLocaleString('pt-BR')}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-end">
-                            <div className="mr-3 text-gray-300 text-sm font-medium">{percentage.toFixed(1)}%</div>
-                            <div className="w-24 bg-gray-700 rounded-full h-2">
-                              <div
-                                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-gray-400 text-center py-6">Nenhum dado de categoria disponível para o período selecionado</p>
           )}
         </div>
       </div>
