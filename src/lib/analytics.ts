@@ -135,11 +135,12 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .from('user_events')
         .select('session_id, step, timestamp');
       
-      if (userEventQuery.error) {
+      // Usar operador de acesso condicional para evitar erro de tipo
+      if (userEventQuery?.error) {
         console.error('Erro ao buscar eventos:', userEventQuery.error);
-      } else {
+      } else if (userEventQuery?.data) {
         // Filtrar os resultados manualmente para garantir compatibilidade
-        allEvents = (userEventQuery.data || [])
+        allEvents = userEventQuery.data
           .filter(event => 
             event.timestamp >= startTimestamp && 
             event.timestamp <= endTimestamp
@@ -174,11 +175,12 @@ export async function getQuizAnalytics(dateRange?: DateRange): Promise<FunnelDat
         .from('quiz_results')
         .select('*');
       
-      if (quizResultsQuery.error) {
+      // Usar operador de acesso condicional para evitar erro de tipo
+      if (quizResultsQuery?.error) {
         console.error('Erro ao buscar quiz completos:', quizResultsQuery.error);
-      } else {
+      } else if (quizResultsQuery?.data) {
         // Filtrar os resultados manualmente para compatibilidade
-        completedQuizzes = (quizResultsQuery.data || [])
+        completedQuizzes = quizResultsQuery.data
           .filter(quiz => {
             const createdAt = quiz.created_at ? new Date(quiz.created_at).getTime() : 0;
             return createdAt >= startTimestamp && createdAt <= endTimestamp;
