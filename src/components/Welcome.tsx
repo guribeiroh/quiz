@@ -1,14 +1,36 @@
 "use client";
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { FaArrowRight, FaTrophy } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
+import { trackStepView, FunnelStep } from '../lib/analytics';
+import { generateSessionId } from '../lib/sessionUtils';
 
 export function Welcome() {
   const { startQuiz } = useQuiz();
+  
+  // Rastrear visualização da página de boas-vindas
+  useEffect(() => {
+    // Garantir que há um ID de sessão
+    const sessionId = generateSessionId();
+    
+    // Rastrear o evento de visualização
+    trackStepView(FunnelStep.WELCOME, sessionId)
+      .catch(error => console.error('Erro ao rastrear visualização:', error));
+      
+    // Registrar evento de pageview
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag('event', 'page_view', {
+        page_title: 'Welcome',
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+      });
+    }
+  }, []);
   
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 sm:p-6 bg-gradient-to-br from-gray-900 to-gray-950 text-white">

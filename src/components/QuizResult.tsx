@@ -7,6 +7,8 @@ import { FaTrophy, FaDownload, FaRedo, FaCheckCircle, FaTimesCircle, FaChevronDo
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import Link from 'next/link';
+import { trackStepView, FunnelStep } from '../lib/analytics';
+import { generateSessionId, clearSessionId } from '../lib/sessionUtils';
 
 export function QuizResult() {
   const { quizResult, userData, questions, resetQuiz } = useQuiz();
@@ -20,6 +22,32 @@ export function QuizResult() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  
+  // Rastrear visualização da página de resultados
+  useEffect(() => {
+    // Garantir que há um ID de sessão
+    const sessionId = generateSessionId();
+    
+    // Rastrear o evento de visualização
+    trackStepView(FunnelStep.QUIZ_RESULT, sessionId)
+      .catch(error => console.error('Erro ao rastrear visualização:', error));
+      
+    // Registrar evento de pageview
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag('event', 'quiz_completed', {
+        page_title: 'Quiz Result',
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+        score: quizResult?.score,
+        correct_answers: quizResult?.correctAnswers,
+        total_questions: quizResult?.totalQuestions,
+        total_time: quizResult?.totalTimeSpent
+      });
+    }
+    
+    // Limpar ID de sessão após completar o funil
+    clearSessionId();
+  }, [quizResult]);
   
   useEffect(() => {
     // Mostrar o popup após 1 segundo
@@ -280,6 +308,13 @@ export function QuizResult() {
       navigator.clipboard.writeText(referralCode);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
+      
+      // Rastrear evento de cópia do código
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as any).gtag('event', 'copy_referral_code', {
+          referral_code: referralCode
+        });
+      }
     }
   };
   
@@ -288,6 +323,14 @@ export function QuizResult() {
     if (referralCode) {
       const shareText = `Acabei de fazer o Quiz de Anatomia e quero te desafiar! Use meu código ${referralCode} para ganhar pontos extras. Faça o quiz em: https://anatomiasemmedo.vercel.app/?ref=${referralCode}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+      
+      // Rastrear evento de compartilhamento
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as any).gtag('event', 'share_quiz', {
+          method: 'whatsapp',
+          referral_code: referralCode
+        });
+      }
     }
   };
   

@@ -5,10 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink } from 'react-icons/fa';
+import { FaCheckCircle, FaBook, FaGraduationCap, FaSpinner, FaLink, FaUser, FaEnvelope, FaPhone, FaUniversity, FaBookReader } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { getReferralCodeOwner } from '../lib/supabase';
+import { trackStepView, FunnelStep } from '../lib/analytics';
+import { generateSessionId } from '../lib/sessionUtils';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -68,11 +70,48 @@ export function LeadCapture() {
     }
   }, [setValue]);
   
+  // Rastrear visualização da página de captura de leads
+  useEffect(() => {
+    // Garantir que há um ID de sessão
+    const sessionId = generateSessionId();
+    
+    // Rastrear o evento de visualização
+    trackStepView(FunnelStep.LEAD_CAPTURE, sessionId)
+      .catch(error => console.error('Erro ao rastrear visualização:', error));
+    
+    // Verificar se há código de referência usado
+    if (typeof window !== 'undefined') {
+      const usedReferralCode = localStorage.getItem('usedReferralCode');
+      if (usedReferralCode) {
+        setAutoAppliedCode(usedReferralCode);
+      }
+    }
+      
+    // Registrar evento de pageview
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag('event', 'page_view', {
+        page_title: 'Lead Capture',
+        page_location: window.location.href,
+        page_path: window.location.pathname,
+      });
+    }
+  }, []);
+  
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
     
     try {
+      // Rastrear evento de envio de formulário
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        (window as any).gtag('event', 'lead_capture', {
+          occupation: data.occupation,
+          has_phone: Boolean(data.phone),
+          is_student: Boolean(data.college && data.semester),
+          used_referral: Boolean(data.referralCode)
+        });
+      }
+      
       await saveUserData(data);
     } catch (error) {
       console.error('Erro ao enviar dados:', error);
