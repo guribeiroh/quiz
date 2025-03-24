@@ -450,7 +450,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         activeReferrers,
         averageReferralsPerUser: averageReferrals,
         conversionRate: totalReferrals > 0 ? 
-          (quizResults?.filter(r => r.referral_code && r.score >= 7).length || 0) / totalReferrals * 100 : 0,
+          (quizResults?.filter(r => r.referral_code && r.score !== undefined && r.score >= 7).length || 0) / totalReferrals * 100 : 0,
         topReferrers: topReferrersList,
         referralChains: referralChainsList,
         timeBasedAnalysis: timeBasedAnalysisList
