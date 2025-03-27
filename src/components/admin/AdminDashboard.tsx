@@ -250,7 +250,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const welcomeCount = eventData.find(e => e.event_name === 'Tela de Boas-vindas')?.user_count || 0;
       const questionsCount = eventData.find(e => e.event_name === 'Respondendo Perguntas')?.user_count || 0;
       const captureCount = eventData.find(e => e.event_name === 'Captura de Dados')?.user_count || 0;
-      const resultsCount = eventData.find(e => e.event_name === 'Resultados')?.user_count || 0;
+      // Variável não utilizada desde que modificamos o funil para terminar na Captura de Dados
+      // const resultsCount = eventData.find(e => e.event_name === 'Resultados')?.user_count || 0;
 
       // Calcular taxas de retenção e abandono
       const funnelSteps: FunnelData[] = [

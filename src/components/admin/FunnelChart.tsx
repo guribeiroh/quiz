@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { FunnelChart as RechartsFunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer } from 'recharts';
 import { FunnelData } from './AdminDashboard';
 
-// Adicionar importação para elementos SVG
-import type { SVGProps } from 'react';
+// Remover importação não utilizada
+// import type { SVGProps } from 'react';
 
 interface FunnelChartProps {
   data: FunnelData[];
@@ -93,10 +93,10 @@ interface CustomLabelProps {
 const CustomLabel = (props: CustomLabelProps) => {
   const { x, y, width, height, value, name } = props;
   
-  // Calcular posições
+  // Calcular posições - remover variável não utilizada
   const centerX = x ? x + (width ? width / 2 : 0) : 0;
   const nameY = y ? y + (height ? height / 2 - 14 : 0) : 0;
-  const valueY = y ? y + (height ? height / 2 + 14 : 0) : 0;
+  // const valueY = y ? y + (height ? height / 2 + 14 : 0) : 0;
   
   // Criar div estilizado em vez de usar elementos SVG
   return (
@@ -121,6 +121,19 @@ const CustomLabel = (props: CustomLabelProps) => {
     </foreignObject>
   );
 };
+
+// Tipagem correta para a função shape
+interface ShapeProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  payload: {
+    fill: string;
+    value: number;
+  };
+  index: number;
+}
 
 export function FunnelChart({ data }: FunnelChartProps) {
   // Formata os dados para criar o gráfico de funil
@@ -186,7 +199,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
             animationEasing="ease-in-out"
             labelLine={false}
             nameKey="name"
-            shape={({ x, y, width, height, payload, index }: any) => {
+            shape={({ x, y, width, height, payload, index }: ShapeProps) => {
               // Calcula as dimensões
               const adjustedY = y;
               const adjustedHeight = height;
