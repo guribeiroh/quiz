@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FaArrowRight, FaTrophy } from 'react-icons/fa';
+import { FaArrowRight, FaTrophy, FaGraduationCap, FaGift, FaCheckCircle } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { trackStepView, FunnelStep } from '../lib/analytics';
@@ -33,80 +33,88 @@ export function Welcome() {
   }, []);
   
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 sm:p-6 bg-gradient-to-br from-gray-900 to-gray-950 text-white">
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+    <div className="flex flex-col items-center justify-between min-h-screen px-4 py-6 bg-gradient-to-br from-gray-900 to-gray-950 text-white">
+      {/* Botão de Ranking no topo */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
         <Link href="/ranking" passHref>
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center bg-emerald-600/80 hover:bg-emerald-600 px-4 py-2 rounded-full text-white text-sm font-medium"
+            className="flex items-center bg-emerald-600/80 hover:bg-emerald-600 px-3 py-1.5 rounded-full text-white text-xs sm:text-sm font-medium"
           >
-            <FaTrophy className="mr-2 text-yellow-300" />
+            <FaTrophy className="mr-1.5 text-yellow-300 text-xs sm:text-sm" />
             Ver Ranking
           </motion.div>
         </Link>
       </div>
       
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center w-full max-w-[95%] sm:max-w-2xl"
-      >
-        <div className="flex flex-col items-center mb-6">
-          <div className="mb-4">
+      {/* Conteúdo Principal */}
+      <div className="w-full flex flex-col items-center justify-start flex-1 pt-6">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center w-full max-w-[95%] sm:max-w-2xl"
+        >
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-4">
             <Image 
               src="/images/logo-anatomia-sem-medo.png"
               alt="Logo Anatomia Sem Medo"
-              width={250}
-              height={250}
+              width={180}
+              height={180}
               className="mx-auto"
               priority
               unoptimized={true}
             />
           </div>
-        </div>
-        
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 px-2">Quiz Anatomia Sem Medo</h1>
-        
-        <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-6 px-1">
-          Desafie seu conhecimento em anatomia e descubra o quanto você sabe!
-        </p>
-        
-        <div className="bg-gray-800/70 backdrop-blur-md p-4 sm:p-6 rounded-xl mb-8 mx-auto border border-gray-700">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-emerald-400">Como funciona:</h2>
           
-          <ul className="text-left space-y-4 sm:space-y-3">
-            <li className="flex items-start">
-              <span className="bg-emerald-500 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">1</span>
-              <span className="text-sm sm:text-base">Responda 10 perguntas sobre anatomia com dificuldade crescente</span>
-            </li>
-            <li className="flex items-start">
-              <span className="bg-emerald-500 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">2</span>
-              <span className="text-sm sm:text-base">Receba feedback imediato e explicações detalhadas</span>
-            </li>
-            <li className="flex items-start">
-              <span className="bg-emerald-500 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">3</span>
-              <span className="text-sm sm:text-base">Ao final, ganhe um e-book exclusivo &quot;Como estudar Anatomia Humana&quot; 📚</span>
-            </li>
-          </ul>
-        </div>
-      </motion.div>
+          {/* Destaques qualitativos em vez de números */}
+          <div className="mb-3">
+            <div className="bg-emerald-600/20 border border-emerald-500/30 rounded-full px-4 py-1.5 mb-3 inline-flex items-center justify-center">
+              <FaCheckCircle className="mr-2 text-emerald-400 text-xs sm:text-sm" />
+              <span className="text-xs sm:text-sm font-medium">Recomendado por professores e estudantes</span>
+            </div>
+            
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-4 px-2 bg-gradient-to-r from-white to-emerald-300 text-transparent bg-clip-text">Desafie Seus Conhecimentos em Anatomia</h1>
+          </div>
+          
+          {/* Botão de Ação - AGORA PRIMEIRO */}
+          <div className="mb-4 flex flex-col items-center">
+            <motion.button
+              onClick={startQuiz}
+              className="w-64 sm:w-72 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-3.5 px-6 rounded-full text-lg flex items-center justify-center transition-all shadow-lg hover:shadow-xl shadow-emerald-900/20"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Iniciar Quiz Gratuito
+              <FaArrowRight className="ml-2" />
+            </motion.button>
+            
+            <p className="mt-3 text-emerald-300 text-xs sm:text-sm px-2 text-center font-medium">
+              Avalie seu conhecimento e ganhe o e-book!
+            </p>
+          </div>
+          
+          {/* Card de Bônus - AGORA SEGUNDO */}
+          <div className="bg-gray-800/70 border-2 border-yellow-500/50 backdrop-blur-md p-5 rounded-xl max-w-md mx-auto shadow-lg shadow-yellow-900/10">
+            <div className="flex items-center justify-center mb-2">
+              <FaGift className="text-yellow-400 mr-2 text-xl" />
+              <h3 className="text-xl font-bold text-yellow-300">BÔNUS GRATUITO</h3>
+            </div>
+            <p className="text-white text-base mb-3 text-center">
+              E-book exclusivo de anatomia!
+            </p>
+            <div className="pt-2 border-t border-gray-700">
+              <p className="text-emerald-300 font-semibold text-center text-sm">
+                Entregue ao finalizar o quiz
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
       
-      <motion.button
-        onClick={startQuiz}
-        className="w-64 sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-full text-lg sm:text-xl flex items-center justify-center transition-all shadow-lg hover:shadow-xl shadow-emerald-900/20"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        Começar
-        <FaArrowRight className="ml-2" />
-      </motion.button>
-      
-      <p className="mt-8 text-gray-400 text-sm px-4 text-center">
-        Centenas de estudantes já testaram seus conhecimentos! <Link href="/ranking" className="text-emerald-400 hover:underline">Confira o ranking</Link>
-      </p>
-      
+      {/* Footer restaurado */}
       <Footer />
     </div>
   );
