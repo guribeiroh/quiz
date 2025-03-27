@@ -12,11 +12,6 @@ export interface FunnelData {
   dropoffRate: number;
 }
 
-interface EventCount {
-  event_name: string;
-  user_count: number;
-}
-
 // Interface para armazenar dados detalhados do funil
 interface DetailedFunnelData {
   step: string;
