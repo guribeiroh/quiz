@@ -199,6 +199,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
             animationEasing="ease-in-out"
             labelLine={false}
             nameKey="name"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             shape={(props: any) => {
               // Extrair as propriedades do objeto props
               const { x, y, width, height, payload, index } = props;
