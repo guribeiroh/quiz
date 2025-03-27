@@ -8,6 +8,7 @@ import { ProgressBar } from './ProgressBar';
 import { Footer } from './Footer';
 import { trackStepView, FunnelStep } from '../lib/analytics';
 import { generateSessionId } from '../lib/sessionUtils';
+import Image from 'next/image';
 
 export function Question() {
   const { currentQuestion, questions, selectAnswer, nextQuestion, selectedAnswer, timeRemaining } = useQuiz();
@@ -188,10 +189,12 @@ export function Question() {
           
           {currentQuestion.imageUrl && (
             <div className="mt-4 mb-6 flex justify-center">
-              <img 
+              <Image 
                 src={currentQuestion.imageUrl} 
                 alt="Imagem da questão"
                 className="max-w-full rounded-lg border border-gray-700 shadow-lg max-h-60 object-contain bg-gray-800"
+                width={400}
+                height={240}
               />
             </div>
           )}

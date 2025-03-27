@@ -120,7 +120,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [detailedFunnelData, setDetailedFunnelData] = useState<DetailedFunnelData[]>([]);
-  const [eventData, setEventData] = useState<EventCount[]>([]);
   const [referralData, setReferralData] = useState<ReferralAnalytics>({
     totalReferrals: 0,
     activeReferrers: 0,
@@ -142,7 +141,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [showPresets, setShowPresets] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [customDateActive, setCustomDateActive] = useState(false);
-  const [datePresets] = useState(() => getDatePresets());
   
   // Formatador de data para exibição amigável
   const formatDateDisplay = (dateString: string): string => {
@@ -543,8 +541,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // CORREÇÃO: Atualizei os presets de data para serem gerados em tempo real a cada clique
   const handleShowPresets = () => {
     // Atualiza os presets de data toda vez que o menu é aberto
-    // Gerar presets atualizados
-    const updatedPresets = getDatePresets();
     // Para atualizar os presets, precisaríamos definir um novo estado aqui
     setShowPresets(!showPresets);
   };
