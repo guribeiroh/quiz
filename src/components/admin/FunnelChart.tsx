@@ -123,17 +123,17 @@ const CustomLabel = (props: CustomLabelProps) => {
 };
 
 // Tipagem correta para a função shape
-interface ShapeProps {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  payload: {
-    fill: string;
-    value: number;
-  };
-  index: number;
-}
+// interface ShapeProps {
+//   x: number;
+//   y: number;
+//   width: number;
+//   height: number;
+//   payload: {
+//     fill: string;
+//     value: number;
+//   };
+//   index: number;
+// }
 
 export function FunnelChart({ data }: FunnelChartProps) {
   // Formata os dados para criar o gráfico de funil
@@ -199,7 +199,10 @@ export function FunnelChart({ data }: FunnelChartProps) {
             animationEasing="ease-in-out"
             labelLine={false}
             nameKey="name"
-            shape={({ x, y, width, height, payload, index }: ShapeProps) => {
+            shape={(props: any) => {
+              // Extrair as propriedades do objeto props
+              const { x, y, width, height, payload, index } = props;
+              
               // Calcula as dimensões
               const adjustedY = y;
               const adjustedHeight = height;
