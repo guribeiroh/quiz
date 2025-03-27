@@ -175,8 +175,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const result = await supabase
           .from('user_events')
           .select('*')
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .filter('created_at', 'gte', startDate.toISOString())
+          .filter('created_at', 'lte', endDate.toISOString());
         
         // Verificar o objeto de resposta completo
         console.log('Resposta completa do Supabase:', result);
@@ -299,9 +299,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           });
           
           setDetailedFunnelData(detailedSteps);
-          
-          // Atualizar o estado eventData APÓS processar todos os cálculos
-          setEventData(events);
         }
       } catch (error) {
         console.error('Erro ao consultar eventos:', error);
@@ -336,8 +333,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const result = await supabase
         .from('quiz_results')
         .select('*')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
+        .filter('created_at', 'gte', startDate.toISOString())
+        .filter('created_at', 'lte', endDate.toISOString())
         .limit(1000);
 
       if (result.error) {
@@ -450,7 +447,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     // Resetar estados para evitar dados inconsistentes durante a atualização
     setFunnelData([]);
     setDetailedFunnelData([]);
-    setEventData([]);
     
     // Iniciar carregamento de dados
     fetchFunnelData();
@@ -481,7 +477,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     // Resetar estados para evitar dados inconsistentes
     setFunnelData([]);
     setDetailedFunnelData([]);
-    setEventData([]);
     
     // Executar as consultas
     fetchFunnelData();
