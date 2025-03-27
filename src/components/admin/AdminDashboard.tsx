@@ -253,8 +253,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         console.error('Erro ao consultar eventos:', error);
       }
 
-      // Não usar dados simulados - vamos forçar o uso apenas de dados reais
-      const eventData: EventCount[] = events;
+      // Usar dados reais dos eventos
       setEventData(events);
 
       console.log('Dados de eventos usados:', events);
