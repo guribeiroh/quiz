@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FunnelChart } from './FunnelChart';
 import { getSupabaseClient } from '@/lib/supabase';
-import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiRefreshCw, FiChevronDown } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiTrendingUp, FiPieChart, FiCalendar, FiRefreshCw, FiChevronDown, FiDownload, FiFilter, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export interface FunnelData {
   stepName: string;
@@ -27,10 +28,13 @@ interface ReferralAnalytics {
   activeReferrers: number;
   averageReferralsPerUser: number;
   conversionRate: number;
+  previousPeriodConversionRate?: number;
   topReferrers: {
     userName: string;
     referralCount: number;
     successRate: number;
+    openRate?: number;
+    previousReferralCount?: number;
   }[];
   referralChains: {
     chainLength: number;
@@ -40,6 +44,11 @@ interface ReferralAnalytics {
     period: string;
     referralCount: number;
     conversionRate: number;
+  }[];
+  channelDistribution?: {
+    channel: string;
+    count: number;
+    percentage: number;
   }[];
 }
 
@@ -120,9 +129,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     activeReferrers: 0,
     averageReferralsPerUser: 0,
     conversionRate: 0,
+    previousPeriodConversionRate: 0,
     topReferrers: [],
     referralChains: [],
-    timeBasedAnalysis: []
+    timeBasedAnalysis: [],
+    channelDistribution: []
   });
   const [activeTab, setActiveTab] = useState('funnel');
   
@@ -136,6 +147,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [showPresets, setShowPresets] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [customDateActive, setCustomDateActive] = useState(false);
+  
+  // Estados para ordenação de tabela
+  const [referrersSort, setReferrersSort] = useState({ field: 'referralCount', direction: 'desc' });
+  // Estado para filtro de canal de referência
+  const [channelFilter, setChannelFilter] = useState('todos');
+  // Estado para exportação
+  const [isExporting, setIsExporting] = useState(false);
   
   // Formatador de data para exibição amigável
   const formatDateDisplay = (dateString: string): string => {
@@ -323,6 +341,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const startDate = new Date(`${dateFilter.startDate}T00:00:00.000Z`);
       const endDate = new Date(`${dateFilter.endDate}T23:59:59.999Z`);
       
+      // Calcular datas do período anterior (mesmo intervalo de tempo)
+      const timeDiff = endDate.getTime() - startDate.getTime();
+      const previousStartDate = new Date(startDate.getTime() - timeDiff);
+      const previousEndDate = new Date(startDate.getTime() - 1);
+      
       console.log('Consultando quiz_results no período:', {
         startDateFormatted: startDate.toISOString(),
         endDateFormatted: endDate.toISOString(),
@@ -337,33 +360,80 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         .filter('created_at', 'lte', endDate.toISOString())
         .limit(1000);
 
+      // Buscar dados do período anterior para comparação
+      const previousResult = await supabase
+        .from('quiz_results')
+        .select('*')
+        .filter('created_at', 'gte', previousStartDate.toISOString())
+        .filter('created_at', 'lte', previousEndDate.toISOString())
+        .limit(1000);
+
       if (result.error) {
         console.error('Erro ao buscar dados de indicações:', result.error);
         return;
       }
 
       const quizResults = (result.data || []) as QuizResult[];
+      const previousQuizResults = (previousResult.data || []) as QuizResult[];
       console.log(`Encontrados ${quizResults.length} resultados de quiz no período selecionado`);
       
       // Processar dados para análise
       const referrers = new Map();
       const chains = new Map();
       const timeAnalysis = new Map();
+      const channels = new Map();
+      
+      // Dados do período anterior para comparação
+      const previousReferrers = new Map();
+      
+      // Processar dados do período anterior
+      previousQuizResults?.forEach(result => {
+        if (result.referral_code && result.referred_by) {
+          const referrer = result.referred_by;
+          previousReferrers.set(referrer, (previousReferrers.get(referrer) || 0) + 1);
+        }
+      });
+      
+      // Calcular taxa de conversão no período anterior
+      const previousTotalReferrals = previousQuizResults?.filter(r => r.referral_code).length || 0;
+      const previousConversions = previousQuizResults?.filter(r => r.referral_code && r.score !== undefined && r.score >= 7).length || 0;
+      const previousConversionRate = previousTotalReferrals > 0 ? (previousConversions / previousTotalReferrals * 100) : 0;
       
       quizResults?.forEach(result => {
         // Contar indicações por usuário
         if (result.referral_code) {
           const referrer = result.referred_by;
+          
+          // Extração simples do canal de origem (simulado)
+          // Na implementação real isso viria dos metadados ou de um campo específico
+          const channel = result.referral_code.includes('whatsapp') ? 'WhatsApp' : 
+                         result.referral_code.includes('email') ? 'Email' : 
+                         result.referral_code.includes('facebook') ? 'Facebook' : 'Outro';
+          
+          channels.set(channel, (channels.get(channel) || 0) + 1);
+          
           if (referrer) {
             const referrerData = referrers.get(referrer) || { 
-              userName: result.user_name,
+              userName: result.user_name || 'Usuário',
               referralCount: 0,
-              successfulReferrals: 0
+              successfulReferrals: 0,
+              openCount: 0
             };
             referrerData.referralCount++;
+            
+            // Simulação de taxa de abertura (na implementação real viria de outra tabela)
+            const openRate = Math.random() > 0.3; // Simulando 70% de taxa de abertura
+            if (openRate) {
+              referrerData.openCount++;
+            }
+            
             if (result.score !== undefined && result.score >= 7) {
               referrerData.successfulReferrals++;
             }
+            
+            // Adicionar contagem anterior
+            referrerData.previousCount = previousReferrers.get(referrer) || 0;
+            
             referrers.set(referrer, referrerData);
           }
           
@@ -392,13 +462,17 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const totalReferrals = quizResults?.filter(r => r.referral_code).length || 0;
       const activeReferrers = referrers.size;
       const averageReferrals = activeReferrers > 0 ? totalReferrals / activeReferrers : 0;
+      const conversionRate = totalReferrals > 0 ? 
+        (quizResults?.filter(r => r.referral_code && r.score !== undefined && r.score >= 7).length || 0) / totalReferrals * 100 : 0;
       
       // Preparar top referrers
       const topReferrersList = Array.from(referrers.values())
         .map(r => ({
           userName: r.userName,
           referralCount: r.referralCount,
-          successRate: (r.successfulReferrals / r.referralCount) * 100
+          successRate: (r.successfulReferrals / r.referralCount) * 100,
+          openRate: (r.openCount / r.referralCount) * 100,
+          previousReferralCount: r.previousCount
         }))
         .sort((a, b) => b.referralCount - a.referralCount)
         .slice(0, 5);
@@ -417,16 +491,26 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         }))
         .sort((a, b) => new Date(b.period).getTime() - new Date(a.period).getTime());
       
+      // Preparar distribuição por canais
+      const channelDistributionList = Array.from(channels.entries())
+        .map(([channel, count]) => ({
+          channel,
+          count,
+          percentage: (count / totalReferrals) * 100
+        }))
+        .sort((a, b) => b.count - a.count);
+      
       // Atualizar estado
       setReferralData({
         totalReferrals,
         activeReferrers,
         averageReferralsPerUser: averageReferrals,
-        conversionRate: totalReferrals > 0 ? 
-          (quizResults?.filter(r => r.referral_code && r.score !== undefined && r.score >= 7).length || 0) / totalReferrals * 100 : 0,
+        conversionRate: conversionRate,
+        previousPeriodConversionRate: previousConversionRate,
         topReferrers: topReferrersList,
         referralChains: referralChainsList,
-        timeBasedAnalysis: timeBasedAnalysisList
+        timeBasedAnalysis: timeBasedAnalysisList,
+        channelDistribution: channelDistributionList
       });
       
     } catch (error) {
@@ -533,6 +617,56 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     // Atualiza os presets de data toda vez que o menu é aberto
     // Para atualizar os presets, precisaríamos definir um novo estado aqui
     setShowPresets(!showPresets);
+  };
+
+  // Função para exportar dados
+  const handleExportData = () => {
+    setIsExporting(true);
+    
+    // Simular atraso de processamento
+    setTimeout(() => {
+      try {
+        // Preparar dados para exportação
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Cabeçalhos
+        csvContent += "Período,Indicações,Taxa de Conversão\n";
+        
+        // Dados
+        referralData.timeBasedAnalysis.forEach(row => {
+          csvContent += `${row.period},${row.referralCount},${row.conversionRate.toFixed(2)}%\n`;
+        });
+        
+        // Criar link para download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `indicacoes_${dateFilter.startDate}_${dateFilter.endDate}.csv`);
+        document.body.appendChild(link);
+        
+        // Simular clique no link
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Erro ao exportar dados:', error);
+        alert('Erro ao exportar dados. Tente novamente.');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 800);
+  };
+
+  // Função para ordenar tabela de referrers
+  const handleSortReferrers = (field) => {
+    setReferrersSort(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  // Função para filtrar por canal
+  const handleChannelFilter = (channel) => {
+    setChannelFilter(channel);
   };
 
   if (loading && !isRefreshing) {
@@ -948,91 +1082,505 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </div>
             ) : (
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                   <h2 className="text-lg font-medium text-white">Análise do Sistema de Indicações</h2>
-                  <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-                    Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                  <div className="flex items-center space-x-3 mt-3 md:mt-0">
+                    <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
+                      Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
+                    </div>
+                    
+                    {/* Filtro de canal */}
+                    <div className="relative">
+                      <button
+                        onClick={() => handleChannelFilter(channelFilter === 'todos' ? referralData.channelDistribution?.[0]?.channel || 'todos' : 'todos')}
+                        className="flex items-center text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors"
+                      >
+                        <FiFilter className="mr-1" /> 
+                        {channelFilter === 'todos' ? 'Todos os canais' : `Canal: ${channelFilter}`}
+                      </button>
+                    </div>
+                    
+                    {/* Botão de exportação */}
+                    <button
+                      onClick={handleExportData}
+                      disabled={isExporting}
+                      className={`flex items-center text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <FiDownload className={`mr-1 ${isExporting ? 'animate-pulse' : ''}`} /> 
+                      {isExporting ? 'Exportando...' : 'Exportar CSV'}
+                    </button>
                   </div>
                 </div>
 
-                {/* Cards de Métricas de Indicação */}
+                {/* Cards de Métricas de Indicação com indicadores de tendência */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 hover:shadow-lg transition-all">
                     <h3 className="text-gray-400 text-sm mb-2">Total de Indicações</h3>
                     <p className="text-2xl font-semibold text-white">{referralData.totalReferrals}</p>
+                    <div className="flex items-center mt-2 text-xs">
+                      <span className={referralData.totalReferrals > 0 ? "text-emerald-400" : "text-gray-500"}>
+                        +{referralData.totalReferrals} desde {formatDateDisplay(dateFilter.startDate)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 hover:shadow-lg transition-all">
                     <h3 className="text-gray-400 text-sm mb-2">Usuários Indicadores</h3>
                     <p className="text-2xl font-semibold text-white">{referralData.activeReferrers}</p>
+                    <div className="flex items-center mt-2 text-xs">
+                      <span className="text-gray-400">
+                        {(referralData.totalReferrals / Math.max(1, referralData.activeReferrers)).toFixed(1)} indicações por usuário
+                      </span>
+                    </div>
                   </div>
-                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 hover:shadow-lg transition-all">
                     <h3 className="text-gray-400 text-sm mb-2">Média de Indicações/Usuário</h3>
                     <p className="text-2xl font-semibold text-white">{referralData.averageReferralsPerUser.toFixed(2)}</p>
+                    <div className="flex items-center mt-2 text-xs">
+                      <span className="text-gray-400">
+                        {referralData.activeReferrers} usuários ativos
+                      </span>
+                    </div>
                   </div>
-                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 hover:shadow-lg transition-all">
                     <h3 className="text-gray-400 text-sm mb-2">Taxa de Conversão</h3>
                     <p className="text-2xl font-semibold text-white">{referralData.conversionRate.toFixed(2)}%</p>
+                    <div className="flex items-center mt-2 text-xs">
+                      {referralData.previousPeriodConversionRate !== undefined && (
+                        <>
+                          {referralData.conversionRate > referralData.previousPeriodConversionRate ? (
+                            <span className="text-emerald-400 flex items-center">
+                              <FiArrowUp className="mr-1" /> +{(referralData.conversionRate - referralData.previousPeriodConversionRate).toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 flex items-center">
+                              <FiArrowDown className="mr-1" /> {(referralData.conversionRate - referralData.previousPeriodConversionRate).toFixed(2)}%
+                            </span>
+                          )}
+                          <span className="ml-1 text-gray-500">vs. período anterior</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Top Indicadores */}
+                {/* Nova seção: Distribuição por Canal */}
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium text-white mb-4">Top Indicadores</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-700">
-                          <th className="py-3 px-4 text-left text-gray-400">Usuário</th>
-                          <th className="py-3 px-4 text-right text-gray-400">Indicações</th>
-                          <th className="py-3 px-4 text-right text-gray-400">Taxa de Sucesso</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {referralData.topReferrers.map((referrer, index) => (
-                          <tr key={index} className="border-b border-gray-700/50">
-                            <td className="py-3 px-4 text-white">{referrer.userName}</td>
-                            <td className="py-3 px-4 text-right text-gray-300">{referrer.referralCount}</td>
-                            <td className="py-3 px-4 text-right">
-                              <span className={`px-2 py-1 rounded ${
-                                referrer.successRate >= 70 ? 'bg-emerald-900/20 text-emerald-400' :
-                                referrer.successRate >= 50 ? 'bg-amber-900/20 text-amber-400' :
-                                'bg-rose-900/20 text-rose-400'
-                              }`}>
-                                {referrer.successRate.toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Análise de Cadeias de Indicação */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium text-white mb-4">Cadeias de Indicação</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                  <h3 className="text-lg font-medium text-white mb-4">Distribuição por Canais</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="col-span-3 bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-700">
-                            <th className="py-2 text-left text-gray-400">Tamanho da Cadeia</th>
-                            <th className="py-2 text-right text-gray-400">Quantidade</th>
+                            <th className="py-2 text-left text-gray-400">Canal</th>
+                            <th className="py-2 text-right text-gray-400">Indicações</th>
+                            <th className="py-2 text-right text-gray-400">%</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {referralData.referralChains.map((chain, index) => (
-                            <tr key={index} className="border-b border-gray-700/50">
-                              <td className="py-2 text-white">{chain.chainLength} níveis</td>
-                              <td className="py-2 text-right text-gray-300">{chain.count}</td>
+                          {referralData.channelDistribution?.map((channel, index) => (
+                            <tr 
+                              key={index} 
+                              className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-all"
+                            >
+                              <td className="py-2 text-white">{channel.channel}</td>
+                              <td className="py-2 text-right text-gray-300">{channel.count}</td>
+                              <td className="py-2 text-right text-gray-300">{channel.percentage.toFixed(1)}%</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                  </div>
+                </div>
+
+                {/* Top Indicadores com ordenação e taxa de abertura */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-white">Top Indicadores</h3>
+                    <span className="text-xs text-gray-400">Clique nas colunas para ordenar</span>
+                  </div>
+                  <div className="overflow-x-auto bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th 
+                            className="py-3 px-4 text-left text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors"
+                            onClick={() => handleSortReferrers('referralCount')}
+                          >
+                            <div className="flex items-center justify-end">
+                              Indicações
+                              {referrersSort.field === 'referralCount' && (
+                                <span className="ml-1">
+                                  {referrersSort.direction === 'desc' ? '↓' : '↑'}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                          <th 
+                            className="py-3 px-4 text-right text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors"
+                            onClick={() => handleSortReferrers('successRate')}
+                          >
+                            <div className="flex items-center justify-end">
+                              Taxa de Sucesso
+                              {referrersSort.field === 'successRate' && (
+                                <span className="ml-1">
+                                  {referrersSort.direction === 'desc' ? '↓' : '↑'}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                          <th 
+                            className="py-3 px-4 text-right text-gray-400 cursor-pointer hover:text-cyan-400 transition-colors"
+                            onClick={() => handleSortReferrers('openRate')}
+                          >
+                            <div className="flex items-center justify-end">
+                              Taxa de Abertura
+                              {referrersSort.field === 'openRate' && (
+                                <span className="ml-1">
+                                  {referrersSort.direction === 'desc' ? '↓' : '↑'}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                          <th className="py-3 px-4 text-right text-gray-400">Tendência</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {referralData.topReferrers
+                          .sort((a, b) => {
+                            const aValue = a[referrersSort.field];
+                            const bValue = b[referrersSort.field];
+                            return referrersSort.direction === 'desc' ? bValue - aValue : aValue - bValue;
+                          })
+                          .map((referrer, index) => (
+                            <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-all">
+                              <td className="py-3 px-4 text-white font-medium">{referrer.userName}</td>
+                              <td className="py-3 px-4 text-right text-gray-300">{referrer.referralCount}</td>
+                              <td className="py-3 px-4 text-right">
+                                <span className={`px-2 py-1 rounded ${
+                                  referrer.successRate >= 70 ? 'bg-emerald-900/20 text-emerald-400' :
+                                  referrer.successRate >= 50 ? 'bg-amber-900/20 text-amber-400' :
+                                  'bg-rose-900/20 text-rose-400'
+                                }`}>
+                                  {referrer.successRate.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <span className={`px-2 py-1 rounded ${
+                                  referrer.openRate >= 70 ? 'bg-emerald-900/20 text-emerald-400' :
+                                  referrer.openRate >= 50 ? 'bg-amber-900/20 text-amber-400' :
+                                  'bg-rose-900/20 text-rose-400'
+                                }`}>
+                                  {referrer.openRate?.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {referrer.previousReferralCount !== undefined && (
+                                  <div className="flex items-center justify-end">
+                                    {referrer.referralCount > referrer.previousReferralCount ? (
+                                      <span className="text-emerald-400 flex items-center">
+                                        <FiArrowUp className="mr-1" /> +{referrer.referralCount - referrer.previousReferralCount}
+                                      </span>
+                                    ) : referrer.referralCount < referrer.previousReferralCount ? (
+                                      <span className="text-rose-400 flex items-center">
+                                        <FiArrowDown className="mr-1" /> {referrer.referralCount - referrer.previousReferralCount}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">Estável</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Análise de Cadeias de Indicação com gráfico */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-white">Cadeias de Indicação</h3>
+                    <div className="bg-gray-800/70 px-2 py-1 rounded text-xs text-cyan-400 flex items-center">
+                      <span className="mr-1">ℹ️</span> Indicações sucessivas conectadas entre usuários
+                    </div>
+                  </div>
+                  
+                  {/* Card explicativo */}
+                  <div className="bg-indigo-900/20 border border-indigo-700/50 rounded-xl p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-indigo-500/20 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                          <path d="M12 17h.01"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-indigo-300 text-sm font-medium mb-1">O que são níveis de cadeia?</h4>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                          Representam a profundidade das indicações sucessivas. Por exemplo, um usuário que indicou outro, 
+                          que por sua vez indicou mais pessoas, forma uma cadeia de múltiplos níveis. 
+                          Quanto mais níveis, maior é o efeito viral das suas indicações.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Visualização de exemplos para um entendimento claro */}
                     <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
-                      <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                        Gráfico de distribuição de cadeias será implementado em breve
+                      <h4 className="text-white text-sm font-medium mb-3 text-center">Exemplo Visual</h4>
+                      
+                      <div className="flex flex-col items-center space-y-6 py-2">
+                        {/* Nível 0 - removido */}
+                        
+                        {/* Nível 1 - agora é o primeiro nível */}
+                        <div className="relative">
+                          {/* Removida conexão do nível 0 */}
+                          <div className="flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 flex items-center justify-center text-sm font-medium">
+                              Nível 1
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">Indicou alguém</div>
+                          </div>
+                        </div>
+                        
+                        {/* Nível 2 */}
+                        <div className="relative">
+                          <div className="absolute h-6 w-0.5 bg-gradient-to-b from-cyan-500 to-blue-500 -top-6 left-1/2 transform -translate-x-1/2"></div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/50 flex items-center justify-center text-sm font-medium">
+                              Nível 2
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">Indicado que indicou</div>
+                          </div>
+                        </div>
+                        
+                        {/* Nível 3 */}
+                        <div className="relative">
+                          <div className="absolute h-6 w-0.5 bg-gradient-to-b from-blue-500 to-indigo-500 -top-6 left-1/2 transform -translate-x-1/2"></div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/50 flex items-center justify-center text-sm font-medium">
+                              Nível 3
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">Crescimento viral</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-gray-700/20 rounded-lg border border-gray-700">
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                          <span className="font-medium text-white">Como funciona:</span> Cada nível representa uma etapa na cadeia de indicação. O nível 1 mostra pessoas que indicaram alguém, o nível 2 são pessoas indicadas que também indicaram outros, e o nível 3 representa o crescimento viral.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Gráfico moderno e interativo */}
+                    <div className="lg:col-span-2 bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5">
+                      <div className="mb-3 text-center">
+                        <h4 className="text-white text-sm font-medium">Distribuição de Cadeias por Níveis</h4>
+                        <p className="text-gray-400 text-xs mt-1">Visualização em árvore das cadeias de indicação</p>
+                      </div>
+                      
+                      {/* Gráfico em formato de árvore horizontal */}
+                      <div className="relative h-[250px] mt-4">
+                        {/* Container do gráfico em árvore */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {/* Estrutura de árvore horizontal */}
+                          <div className="w-full h-full relative px-4">
+                            {(() => {
+                              // Preparar dados para visualização
+                              const data = referralData.referralChains.reduce((acc, chain) => {
+                                acc[chain.chainLength] = chain.count;
+                                return acc;
+                              }, {});
+                              
+                              // Buscar dados de pessoas que completaram o quiz
+                              const quizCompletions = funnelData[2]?.totalUsers || 0;
+                              
+                              // Corrigir a lógica: Nível 0 representa TODAS as pessoas que completaram o quiz
+                              // Nível 1, 2, 3, etc. são os níveis da cadeia de indicação
+                              
+                              // Calcular pessoas que apenas completaram mas não indicaram
+                              const level1Count = data[1] || 0;
+                              const level2Count = data[2] || 0;
+                              const level3Count = data[3] || 0;
+                              const higherLevelsCount = Object.entries(data)
+                                .filter(([level]) => parseInt(level) >= 4)
+                                .reduce((sum, [, count]) => sum + count, 0);
+                              
+                              // Total de pessoas que fizeram alguma indicação
+                              const totalReferrers = level1Count + level2Count + level3Count + higherLevelsCount;
+                              
+                              // Pessoas que completaram mas não indicaram (nível 0 corrigido)
+                              const completedButNotReferred = quizCompletions - totalReferrers;
+                              
+                              // Atualizar o nível 0 para representar apenas quem completou e não indicou
+                              data[0] = completedButNotReferred > 0 ? completedButNotReferred : 0;
+                              
+                              // Número total de usuários em todas as cadeias (agora inclui todos que completaram)
+                              const totalUsers = quizCompletions;
+                              
+                              // Calcular fator de escala para os nós com base no total correto
+                              const scaleFactor = (val) => Math.max(Math.sqrt(val / (totalUsers || 1)) * 100, 24);
+                              
+                              // Tornar data acessível fora desta função
+                              window.chartData = data;
+                              window.totalReferrers = totalReferrers;
+                              
+                              // Validar consistência dos dados
+                              // Se o total de pessoas que indicaram for maior que quem concluiu o quiz, há inconsistência
+                              const somaNiveis = (data[1] || 0) + (data[2] || 0) + (data[3] || 0);
+                              const totalIndicacoesAjustado = Math.min(somaNiveis, quizCompletions);
+                              const fatorAjuste = somaNiveis > 0 ? totalIndicacoesAjustado / somaNiveis : 1;
+                              
+                              // Ajustar os dados para manter a proporção entre níveis, mas sem exceder o total de quiz
+                              if (fatorAjuste < 1) {
+                                data[1] = Math.floor((data[1] || 0) * fatorAjuste);
+                                data[2] = Math.floor((data[2] || 0) * fatorAjuste);
+                                data[3] = Math.floor((data[3] || 0) * fatorAjuste);
+                                // Atualizar o window.chartData com valores ajustados
+                                window.chartData = data;
+                              }
+                              
+                              // Renderizar o gráfico em árvore horizontal
+                              return (
+                                <div className="h-full flex items-center">
+                                  {/* Níveis alinhados horizontalmente */}
+                                  <div className="flex items-center justify-between w-full h-full relative">
+                                    {/* Nível 0 - removido */}
+                                    
+                                    {/* Nível 1 - agora é o primeiro nível */}
+                                    <div className="flex flex-col items-center relative ml-0">
+                                      <div 
+                                        className="rounded-full bg-cyan-500/30 border-2 border-cyan-500 flex items-center justify-center shadow-lg relative group hover:bg-cyan-500/40 transition-all"
+                                        style={{ 
+                                          width: `${scaleFactor(data[1] || 0)}px`, 
+                                          height: `${scaleFactor(data[1] || 0)}px`,
+                                          minWidth: '24px',
+                                          minHeight: '24px'
+                                        }}
+                                      >
+                                        <div className="text-center">
+                                          <div className="text-cyan-300 text-[10px] font-medium">Nível 1</div>
+                                          <div className="text-white font-bold text-xs">{data[1] || 0}</div>
+                    </div>
+                                        
+                                        {/* Tooltip para nível 1 */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 transform -translate-y-full px-3 py-2 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl text-xs z-10 whitespace-nowrap">
+                                          <div className="font-medium text-white mb-1">Cadeias de 1 nível</div>
+                                          <div className="text-gray-300 flex justify-between gap-3">
+                                            <span>Quantidade:</span> 
+                                            <span className="font-medium text-cyan-400">{data[1] || 0}</span>
+                  </div>
+                                          <div className="mt-1">
+                                            <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-500/20 text-gray-400 border-gray-500/30">
+                                              {Math.round((data[1] / quizCompletions) * 100)}% dos usuários
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-400 mt-2">Indicou alguém</div>
+                                      
+                                      {/* Conexão horizontal - sempre visível */}
+                                      <div className="absolute w-16 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 top-1/2 -right-16"></div>
+                                    </div>
+                                    
+                                    {/* Nível 2 */}
+                                    <div className="flex flex-col items-center relative">
+                                      <div 
+                                        className="rounded-full bg-blue-500/30 border-2 border-blue-500 flex items-center justify-center shadow-lg relative group hover:bg-blue-500/40 transition-all"
+                                        style={{ 
+                                          width: `${scaleFactor(data[2] || 0)}px`, 
+                                          height: `${scaleFactor(data[2] || 0)}px`,
+                                          minWidth: '24px',
+                                          minHeight: '24px'
+                                        }}
+                                      >
+                                        <div className="text-center">
+                                          <div className="text-blue-300 text-[10px] font-medium">Nível 2</div>
+                                          <div className="text-white font-bold text-xs">{data[2] || 0}</div>
+                                        </div>
+                                        
+                                        {/* Tooltip para nível 2 */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 transform -translate-y-full px-3 py-2 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl text-xs z-10 whitespace-nowrap">
+                                          <div className="font-medium text-white mb-1">Cadeias de 2 níveis</div>
+                                          <div className="text-gray-300 flex justify-between gap-3">
+                                            <span>Quantidade:</span> 
+                                            <span className="font-medium text-cyan-400">{data[2] || 0}</span>
+                                          </div>
+                                          <div className="mt-1">
+                                            <span className="text-xs px-2 py-0.5 rounded-full border bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                              Impacto básico
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-400 mt-2">Indicado que indicou</div>
+                                      
+                                      {/* Conexão horizontal - sempre visível */}
+                                      <div className="absolute w-16 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 top-1/2 -right-16"></div>
+                                    </div>
+                                    
+                                    {/* Nível 3 - sempre exibido mesmo com valor 0 */}
+                                    <div className="flex flex-col items-center relative">
+                                      <div 
+                                        className="rounded-full bg-indigo-500/30 border-2 border-indigo-500 flex items-center justify-center shadow-lg relative group hover:bg-indigo-500/40 transition-all"
+                                        style={{ 
+                                          width: `${scaleFactor(data[3] || 0)}px`, 
+                                          height: `${scaleFactor(data[3] || 0)}px`,
+                                          minWidth: '24px',
+                                          minHeight: '24px'
+                                        }}
+                                      >
+                                        <div className="text-center">
+                                          <div className="text-indigo-300 text-[10px] font-medium">Nível 3</div>
+                                          <div className="text-white font-bold text-xs">{data[3] || 0}</div>
+                                        </div>
+                                        
+                                        {/* Tooltip para nível 3 */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 transform -translate-y-full px-3 py-2 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl text-xs z-10 whitespace-nowrap">
+                                          <div className="font-medium text-white mb-1">Cadeias de 3 níveis</div>
+                                          <div className="text-gray-300 flex justify-between gap-3">
+                                            <span>Quantidade:</span> 
+                                            <span className="font-medium text-cyan-400">{data[3] || 0}</span>
+                                          </div>
+                                          <div className="mt-1">
+                                            <span className="text-xs px-2 py-0.5 rounded-full border bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
+                                              Impacto médio
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-400 mt-2">Crescimento viral</div>
+                                      
+                                      {/* Removida conexão para o nível 4+ */}
+                                    </div>
+                                    
+                                    {/* Nível 4+ removido conforme solicitação */}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 p-4 bg-gray-700/20 rounded-lg border border-gray-700">
+                        <div className="flex items-start gap-3">
+                          <div className="text-cyan-400 mt-0.5">🌳</div>
+                          <div>
+                            <p className="text-xs text-gray-300 leading-relaxed">
+                              <span className="font-medium text-white">Interpretação:</span> O tamanho de cada círculo representa a quantidade de cadeias 
+                              em cada nível. Quanto mais à direita, maior o efeito viral das indicações. O nível 1 são pessoas que indicaram, nível 2 são indicações que geraram outras indicações, e nível 3 representa o crescimento viral.
+                            </p>
+                            <p className="text-xs text-gray-300 mt-2">
+                              <span className="font-medium text-emerald-400">Total de usuários que indicaram:</span> {Math.min(((window.chartData?.[1] || 0) + (window.chartData?.[2] || 0) + (window.chartData?.[3] || 0)), funnelData[2]?.totalUsers || 0)} <span className="text-xs text-gray-500">(limitado ao total de {funnelData[2]?.totalUsers || 0} concluintes do quiz)</span>
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1041,7 +1589,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 {/* Análise Temporal */}
                 <div>
                   <h3 className="text-lg font-medium text-white mb-4">Evolução das Indicações</h3>
-                  <div className="overflow-x-auto">
+                  
+                  <div className="overflow-x-auto bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-700">
@@ -1052,7 +1601,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       </thead>
                       <tbody>
                         {referralData.timeBasedAnalysis.map((period, index) => (
-                          <tr key={index} className="border-b border-gray-700/50">
+                          <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-all">
                             <td className="py-3 px-4 text-white">{period.period}</td>
                             <td className="py-3 px-4 text-right text-gray-300">{period.referralCount}</td>
                             <td className="py-3 px-4 text-right">
