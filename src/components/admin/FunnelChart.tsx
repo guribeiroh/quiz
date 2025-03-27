@@ -4,6 +4,9 @@ import { useMemo } from 'react';
 import { FunnelChart as RechartsFunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer } from 'recharts';
 import { FunnelData } from './AdminDashboard';
 
+// Adicionar importação para elementos SVG
+import type { SVGProps } from 'react';
+
 interface FunnelChartProps {
   data: FunnelData[];
 }
@@ -18,23 +21,22 @@ interface TooltipProps {
   }>;
 }
 
-// Definindo gradientes para o funil para um visual mais moderno
+// Paleta de cores harmônica para o funil
 const GRADIENTS = [
   {
     id: 'gradient1',
-    colors: ['#0284c7', '#0ea5e9']
+    colors: ['#4facfe', '#00f2fe'],
+    angle: 120
   },
   {
     id: 'gradient2',
-    colors: ['#0ea5e9', '#38bdf8']
+    colors: ['#43e97b', '#38f9d7'],
+    angle: 135
   },
   {
     id: 'gradient3',
-    colors: ['#38bdf8', '#7dd3fc']
-  },
-  {
-    id: 'gradient4',
-    colors: ['#7dd3fc', '#bae6fd']
+    colors: ['#fa709a', '#fee140'],
+    angle: 150
   }
 ];
 
@@ -45,27 +47,27 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
     const firstStepUsers = data.data && data.data.length > 0 ? data.data[0].totalUsers : data.totalUsers;
     
     return (
-      <div className="bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-xl text-white transition-all duration-300 scale-100 transform">
-        <h3 className="text-lg font-medium mb-2 text-cyan-400">{data.stepName}</h3>
+      <div className="bg-gray-800/90 p-4 rounded-lg border border-gray-600 shadow-xl text-white transition-all duration-300">
+        <h3 className="text-lg font-medium mb-2 text-cyan-300">{data.stepName}</h3>
         <p className="text-white font-semibold text-xl">
           {data.totalUsers.toLocaleString('pt-BR')} <span className="text-sm text-gray-300">usuários</span>
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-          <div className="bg-emerald-900/30 rounded-md p-1.5 text-center">
-            <span className="text-emerald-400 font-medium">{data.retentionRate.toFixed(1)}%</span>
+          <div className="bg-emerald-900/50 rounded-md p-2 text-center">
+            <span className="text-emerald-300 font-medium">{data.retentionRate.toFixed(1)}%</span>
             <p className="text-gray-300 text-xs">retenção</p>
           </div>
-          <div className="bg-rose-900/30 rounded-md p-1.5 text-center">
-            <span className="text-rose-400 font-medium">{data.dropoffRate.toFixed(1)}%</span>
+          <div className="bg-rose-900/50 rounded-md p-2 text-center">
+            <span className="text-rose-300 font-medium">{data.dropoffRate.toFixed(1)}%</span>
             <p className="text-gray-300 text-xs">abandono</p>
           </div>
         </div>
         
         {/* Indicador de taxa de conversão em relação à primeira etapa */}
         {data.stepName !== 'Tela Inicial' && data.data && (
-          <div className="mt-3 pt-2 border-t border-gray-700">
-            <p className="text-xs text-gray-400">Taxa de conversão total:</p>
-            <p className="text-cyan-400 font-medium">
+          <div className="mt-3 pt-2 border-t border-gray-600">
+            <p className="text-xs text-gray-300">Taxa de conversão total:</p>
+            <p className="text-cyan-300 font-medium">
               {((data.totalUsers / firstStepUsers) * 100).toFixed(1)}%
             </p>
           </div>
@@ -91,27 +93,32 @@ interface CustomLabelProps {
 const CustomLabel = (props: CustomLabelProps) => {
   const { x, y, width, height, value, name } = props;
   
+  // Calcular posições
+  const centerX = x ? x + (width ? width / 2 : 0) : 0;
+  const nameY = y ? y + (height ? height / 2 - 14 : 0) : 0;
+  const valueY = y ? y + (height ? height / 2 + 14 : 0) : 0;
+  
+  // Criar div estilizado em vez de usar elementos SVG
   return (
-    <g>
-      <text
-        x={x ? x + (width ? width / 2 : 0) : 0}
-        y={y ? y + (height ? height / 2 - 12 : 0) : 0}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-white font-medium text-sm"
+    <foreignObject x={centerX - 60} y={nameY - 30} width={120} height={60}>
+      <div 
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          color: 'white',
+          textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          pointerEvents: 'none'
+        }}
       >
-        {name}
-      </text>
-      <text
-        x={x ? x + (width ? width / 2 : 0) : 0}
-        y={y ? y + (height ? height / 2 + 12 : 0) : 0}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="fill-gray-300 font-medium text-sm"
-      >
-        {value ? value.toLocaleString('pt-BR') : '0'}
-      </text>
-    </g>
+        <div className="font-medium text-sm">{name}</div>
+        <div className="font-semibold">{value ? value.toLocaleString('pt-BR') : '0'}</div>
+      </div>
+    </foreignObject>
   );
 };
 
@@ -123,7 +130,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
     return data.map((step, index) => ({
       ...step,
       data: data, // Incluir o dataset completo para referência
-      fill: `url(#funnel-gradient-${index})`,
+      fill: `url(#funnel-gradient-${index % GRADIENTS.length})`,
       name: step.stepName,
       value: step.totalUsers
     }));
@@ -138,7 +145,14 @@ export function FunnelChart({ data }: FunnelChartProps) {
   }
 
   return (
-    <div className="relative h-64 md:h-80 w-full bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-xl overflow-hidden p-2">
+    <div className="relative h-64 md:h-80 w-full bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700/30 shadow-xl overflow-hidden p-4">
+      {/* Elementos decorativos de fundo simplificados */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-40">
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-blue-500/20"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-40 h-40 rounded-full bg-purple-500/20"></div>
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 rounded-full bg-emerald-500/20"></div>
+      </div>
+      
       <ResponsiveContainer width="100%" height="100%">
         <RechartsFunnelChart
           width={730}
@@ -152,26 +166,66 @@ export function FunnelChart({ data }: FunnelChartProps) {
                 x1="0"
                 y1="0"
                 x2="1"
-                y2="0"
+                y2="1"
               >
-                <stop offset="0%" stopColor={gradient.colors[0]} stopOpacity={0.9} />
-                <stop offset="100%" stopColor={gradient.colors[1]} stopOpacity={0.9} />
+                <stop offset="0%" stopColor={gradient.colors[0]} />
+                <stop offset="100%" stopColor={gradient.colors[1]} />
               </linearGradient>
             ))}
           </defs>
           <Tooltip 
             content={<CustomTooltip />} 
-            animationDuration={300} 
-            animationEasing="ease-out"
+            animationDuration={400} 
+            animationEasing="ease-in-out"
           />
           <Funnel
             dataKey="value"
             data={formattedData}
             isAnimationActive={true}
-            animationDuration={800}
-            animationEasing="ease-out"
+            animationDuration={1000}
+            animationEasing="ease-in-out"
             labelLine={false}
             nameKey="name"
+            shape={({ x, y, width, height, payload, index }: any) => {
+              // Calcula as dimensões
+              const adjustedY = y;
+              const adjustedHeight = height;
+              
+              // Cria forma do funil com larguras proporcionais aos valores
+              const topWidth = width * (index === 0 ? 1 : 0.9);
+              const bottomWidth = width * (index === data.length - 1 ? 0.5 : 0.85);
+              
+              // Pontos do caminho
+              const topLeftX = x + (width - topWidth) / 2;
+              const topRightX = topLeftX + topWidth;
+              
+              const bottomLeftX = x + (width - bottomWidth) / 2;
+              const bottomRightX = bottomLeftX + bottomWidth;
+              
+              // Aproximadamente 20% da altura para a curva
+              const curveHeight = adjustedHeight * 0.2;
+              
+              // Criar caminho SVG com curvas suaves
+              const path = `
+                M ${topLeftX},${adjustedY}
+                L ${topRightX},${adjustedY}
+                C ${topRightX},${adjustedY + curveHeight} ${bottomRightX},${adjustedY + adjustedHeight - curveHeight} ${bottomRightX},${adjustedY + adjustedHeight}
+                L ${bottomLeftX},${adjustedY + adjustedHeight}
+                C ${bottomLeftX},${adjustedY + adjustedHeight - curveHeight} ${topLeftX},${adjustedY + curveHeight} ${topLeftX},${adjustedY}
+                Z
+              `;
+              
+              return (
+                <>
+                  <path 
+                    d={path} 
+                    fill={payload.fill}
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth={1}
+                  />
+                </>
+              );
+            }}
           >
             <LabelList
               position="inside"
@@ -182,8 +236,8 @@ export function FunnelChart({ data }: FunnelChartProps) {
       </ResponsiveContainer>
       
       {/* Legenda da visualização */}
-      <div className="absolute bottom-2 right-3 text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-        Usuários por etapa do funil
+      <div className="absolute bottom-3 right-4 text-xs bg-gray-800 px-3 py-1.5 rounded-full text-gray-300 border border-gray-700">
+        Jornada do usuário
       </div>
     </div>
   );

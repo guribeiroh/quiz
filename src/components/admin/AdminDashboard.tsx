@@ -270,12 +270,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           stepName: 'Captura de Dados',
           totalUsers: captureCount,
           retentionRate: questionsCount > 0 ? (captureCount / questionsCount * 100) : 0,
-          dropoffRate: captureCount > 0 ? ((captureCount - resultsCount) / captureCount * 100) : 0
-        },
-        {
-          stepName: 'Resultados',
-          totalUsers: resultsCount,
-          retentionRate: captureCount > 0 ? (resultsCount / captureCount * 100) : 0,
           dropoffRate: 0
         }
       ];
@@ -326,13 +320,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         dropoff: questionEvents.length > 0 ? 
           ((detailedSteps[detailedSteps.length - 1].totalUsers - captureCount) / detailedSteps[detailedSteps.length - 1].totalUsers * 100) : 
           (questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0)
-      });
-      
-      detailedSteps.push({
-        step: 'Resultados',
-        totalUsers: resultsCount,
-        percentage: welcomeCount > 0 ? (resultsCount / welcomeCount * 100) : 0,
-        dropoff: captureCount > 0 ? ((captureCount - resultsCount) / captureCount * 100) : 0
       });
       
       setDetailedFunnelData(detailedSteps);
@@ -644,7 +631,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <p className="text-gray-400 text-sm">Taxa de Conclusão</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData.length && funnelData[0].totalUsers > 0
-                    ? `${((funnelData[3]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(2)}%`
+                    ? `${((funnelData[2]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(2)}%`
                     : '0%'}
                 </h3>
               </div>
@@ -671,9 +658,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <FiPieChart className="text-2xl text-fuchsia-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Resultados Exibidos</p>
+                <p className="text-gray-400 text-sm">Dados Capturados</p>
                 <h3 className="text-white text-2xl font-semibold">
-                  {funnelData[3]?.totalUsers.toLocaleString('pt-BR') || 0}
+                  {funnelData[2]?.totalUsers.toLocaleString('pt-BR') || 0}
                 </h3>
               </div>
             </div>
