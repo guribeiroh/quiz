@@ -138,7 +138,7 @@ export function RankingMobileList({
                   <FaClock className="text-blue-400 mr-1 text-[10px]" />
                   <span>{formatTime(entry.total_time_spent)}</span>
                 </div>
-                {entry.referral_bonus_points > 0 && (
+                {(entry.referral_bonus_points !== undefined && entry.referral_bonus_points > 0) && (
                   <div className="flex items-center text-xs text-yellow-400">
                     <FaStar className="mr-1 text-[10px]" />
                     <span>+{entry.referral_bonus_points}</span>
