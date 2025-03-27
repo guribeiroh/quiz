@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FaArrowRight, FaTrophy, FaGraduationCap, FaGift, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowRight, FaTrophy, FaGift, FaCheckCircle } from 'react-icons/fa';
 import { useQuiz } from '../context/QuizContext';
 import { Footer } from './Footer';
 import { trackStepView, FunnelStep } from '../lib/analytics';
