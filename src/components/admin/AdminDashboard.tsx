@@ -217,24 +217,37 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           
           console.log('Eventos após filtro de data:', filteredEvents.length);
           
-          // Processar manualmente para contar eventos por tipo de etapa
-          const eventCounts: Record<string, number> = {};
+          // Processar manualmente para contar usuários únicos por tipo de etapa
+          const uniqueUsersByStep: Record<string, Set<string>> = {};
+          
           filteredEvents.forEach((event: EventData) => {
             const step = event.step;
+            const userId = event.user_id || event.session_id;
+            
             if (!step) {
               console.log('Evento sem step:', event);
               return;
             }
-            eventCounts[step] = (eventCounts[step] || 0) + 1;
+            
+            if (!userId) {
+              console.log('Evento sem user_id ou session_id:', event);
+              return;
+            }
+            
+            if (!uniqueUsersByStep[step]) {
+              uniqueUsersByStep[step] = new Set();
+            }
+            
+            uniqueUsersByStep[step].add(userId);
           });
           
           // Converter para o formato esperado
-          events = Object.entries(eventCounts).map(([step, count]) => ({
+          events = Object.entries(uniqueUsersByStep).map(([step, userSet]) => ({
             event_name: step,
-            user_count: count
+            user_count: userSet.size
           }));
           
-          console.log('Eventos agrupados por step:', events);
+          console.log('Eventos agrupados por step (usuários únicos):', events);
         }
       } catch (error) {
         console.error('Erro ao consultar eventos:', error);
@@ -686,19 +699,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 )}
               </button>
               <button
-                className={`py-3 px-1 relative ${
-                  activeTab === 'events'
-                    ? 'text-cyan-400 font-medium'
-                    : 'text-gray-400 hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('events')}
-              >
-                Eventos por Data
-                {activeTab === 'events' && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
-                )}
-              </button>
-              <button
                 onClick={() => setActiveTab('detailed')}
                 className={`py-3 px-1 relative ${
                   activeTab === 'detailed'
@@ -761,33 +761,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            ) : activeTab === 'events' ? (
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-white">Eventos por Data</h2>
-                  <div className="text-xs text-gray-400 bg-gray-800/70 px-2 py-1 rounded-md backdrop-blur-sm">
-                    Período: {formatDateDisplay(dateFilter.startDate)} a {formatDateDisplay(dateFilter.endDate)}
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="py-3 px-4 text-left text-gray-300 font-medium">Evento</th>
-                        <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {eventData.map((event, index) => (
-                        <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
-                          <td className="py-3 px-4 text-white">{event.event_name}</td>
-                          <td className="py-3 px-4 text-right text-gray-300">{event.user_count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             ) : activeTab === 'detailed' ? (
