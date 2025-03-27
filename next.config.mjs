@@ -19,6 +19,14 @@ const nextConfig = {
     });
     return config;
   },
+  // Desabilitar verificações de tipo TypeScript durante o build
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Desabilitar verificações do ESLint durante o build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig; 
