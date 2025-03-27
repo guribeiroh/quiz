@@ -52,6 +52,18 @@ interface ReferralAnalytics {
   }[];
 }
 
+// Adicionando interface para as perguntas do quiz
+interface QuizQuestion {
+  id?: string;
+  question: string;
+  options: string[];
+  correct_answer: number;
+  explanation?: string;
+  active: boolean;
+  question_order: number;
+  difficulty?: 'fácil' | 'médio' | 'difícil';
+}
+
 interface DateRange {
   startDate: string;
   endDate: string;
@@ -137,6 +149,12 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   });
   const [activeTab, setActiveTab] = useState('funnel');
   
+  // Estados para gerenciamento de perguntas
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  
   // Estados para o filtro de data
   const [dateFilter, setDateFilter] = useState<DateRange>(() => {
     // Inicializar com o preset de últimos 30 dias
@@ -164,6 +182,32 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       year: 'numeric'
     });
   };
+
+  // Função para carregar as perguntas do quiz
+  const fetchQuizQuestions = useCallback(async () => {
+    try {
+      setIsLoadingQuestions(true);
+      const supabase = getSupabaseClient();
+      
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .order('question_order', { ascending: true });
+      
+      if (error) {
+        console.error('Erro ao carregar perguntas do quiz:', error);
+        return;
+      }
+      
+      if (data) {
+        setQuizQuestions(data);
+      }
+    } catch (error) {
+      console.error('Erro ao processar perguntas do quiz:', error);
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  }, []);
 
   // Carrega os dados do funil
   const fetchFunnelData = useCallback(async () => {
@@ -540,7 +584,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Atualizar dados quando o componente montar
   useEffect(() => {
     applyDateFilter();
-  }, [applyDateFilter]);
+    fetchQuizQuestions(); // Carregar perguntas ao montar o componente
+  }, [applyDateFilter, fetchQuizQuestions]);
 
   // Manipular seleção de preset de data
   const handleDatePresetSelect = (preset: DateRange) => {
@@ -667,6 +712,254 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Função para filtrar por canal
   const handleChannelFilter = (channel) => {
     setChannelFilter(channel);
+  };
+
+  // Função para salvar uma pergunta (criar ou atualizar)
+  const saveQuestion = async (questionData: QuizQuestion) => {
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Garantir que difficulty tenha um valor válido
+      const difficulty = questionData.difficulty || 'médio';
+      
+      // Log para debug
+      console.log('Dados da pergunta a serem salvos:', {
+        ...questionData,
+        difficulty
+      });
+      
+      if (questionData.id) {
+        // Atualizar pergunta existente
+        const { error } = await supabase
+          .from('quiz_questions')
+          .update({
+            question: questionData.question,
+            options: questionData.options,
+            correct_answer: questionData.correct_answer,
+            explanation: questionData.explanation || null,
+            active: questionData.active,
+            question_order: questionData.question_order,
+            difficulty: difficulty,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', questionData.id);
+          
+        if (error) {
+          console.error('Erro ao atualizar pergunta:', error);
+          return false;
+        }
+      } else {
+        // Verificar se a coluna difficulty existe
+        try {
+          // Primeiro, tentamos inserir com o campo difficulty
+          const { error } = await supabase
+            .from('quiz_questions')
+            .insert({
+              question: questionData.question,
+              options: questionData.options,
+              correct_answer: questionData.correct_answer,
+              explanation: questionData.explanation || null,
+              active: questionData.active,
+              question_order: questionData.question_order,
+              difficulty: difficulty,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+          if (error) {
+            // Se o erro for relacionado ao campo difficulty não existir
+            if (error.message && error.message.includes('difficulty')) {
+              console.warn('A coluna difficulty não existe. Execute o script add_difficulty_field.sql.');
+              
+              // Tentar novamente sem o campo difficulty
+              const { error: error2 } = await supabase
+                .from('quiz_questions')
+                .insert({
+                  question: questionData.question,
+                  options: questionData.options,
+                  correct_answer: questionData.correct_answer,
+                  explanation: questionData.explanation || null,
+                  active: questionData.active,
+                  question_order: questionData.question_order,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+                
+              if (error2) {
+                console.error('Erro ao inserir pergunta sem o campo difficulty:', error2);
+                return false;
+              }
+            } else {
+              console.error('Erro ao inserir pergunta:', error);
+              return false;
+            }
+          }
+        } catch (insertError) {
+          console.error('Erro na tentativa de inserção:', insertError);
+          return false;
+        }
+      }
+      
+      // Recarregar a lista de perguntas
+      await fetchQuizQuestions();
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar pergunta:', error);
+      return false;
+    }
+  };
+
+  // Função para excluir uma pergunta
+  const deleteQuestion = async (questionId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta pergunta? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+    
+    try {
+      setIsLoadingQuestions(true);
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('quiz_questions')
+        .delete()
+        .eq('id', questionId);
+        
+      if (error) {
+        console.error('Erro ao excluir pergunta:', error);
+        alert('Erro ao excluir pergunta. Tente novamente.');
+        return;
+      }
+      
+      // Recarregar perguntas após excluir
+      fetchQuizQuestions();
+      
+    } catch (error) {
+      console.error('Erro ao excluir pergunta:', error);
+      alert('Ocorreu um erro ao processar sua solicitação.');
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  };
+
+  // Função para criar uma pergunta
+  const handleAddQuestion = () => {
+    setEditingQuestion({
+      question: '',
+      options: ['', ''],
+      correct_answer: 0,
+      active: true,
+      question_order: quizQuestions.length + 1,
+      difficulty: 'médio'
+    });
+    setShowQuestionForm(true);
+  };
+
+  // Função para editar uma pergunta existente
+  const handleEditQuestion = (question: QuizQuestion) => {
+    setEditingQuestion(question);
+    setShowQuestionForm(true);
+  };
+
+  // Manipular mudanças no formulário de pergunta
+  const handleQuestionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    if (editingQuestion) {
+      setEditingQuestion(prev => {
+        if (!prev) return prev;
+        
+        if (name === 'correct_answer') {
+          return { ...prev, [name]: parseInt(value) };
+        }
+        
+        if (name === 'active') {
+          return { ...prev, [name]: value === 'true' };
+        }
+        
+        return { ...prev, [name]: value };
+      });
+    }
+  };
+
+  // Manipular mudanças nas opções
+  const handleOptionChange = (index: number, value: string) => {
+    if (editingQuestion) {
+      setEditingQuestion(prev => {
+        if (!prev) return prev;
+        
+        const newOptions = [...prev.options];
+        newOptions[index] = value;
+        
+        return { ...prev, options: newOptions };
+      });
+    }
+  };
+
+  // Adicionar opção
+  const handleAddOption = () => {
+    if (editingQuestion) {
+      setEditingQuestion(prev => {
+        if (!prev) return prev;
+        
+        return { ...prev, options: [...prev.options, ''] };
+      });
+    }
+  };
+
+  // Remover opção
+  const handleRemoveOption = (index: number) => {
+    if (editingQuestion) {
+      setEditingQuestion(prev => {
+        if (!prev) return prev;
+        
+        const newOptions = [...prev.options];
+        newOptions.splice(index, 1);
+        
+        // Ajustar resposta correta se necessário
+        let correctAnswer = prev.correct_answer;
+        if (correctAnswer === index) {
+          correctAnswer = 0;
+        } else if (correctAnswer > index) {
+          correctAnswer--;
+        }
+        
+        return { 
+          ...prev, 
+          options: newOptions,
+          correct_answer: correctAnswer
+        };
+      });
+    }
+  };
+
+  // Enviar formulário
+  const handleSubmitQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingQuestion) return;
+    
+    // Verificar se há opções vazias
+    if (editingQuestion.options.some(option => !option.trim())) {
+      alert('Todas as opções devem ser preenchidas');
+      return;
+    }
+    
+    setIsLoadingQuestions(true);
+    
+    try {
+      const success = await saveQuestion(editingQuestion);
+      if (success) {
+        setShowQuestionForm(false);
+        setEditingQuestion(null);
+      } else {
+        alert('Erro ao salvar pergunta. Tente novamente.');
+      }
+    } catch (error) {
+      console.error('Erro ao processar formulário:', error);
+      alert('Ocorreu um erro inesperado. Verifique o console para mais detalhes.');
+    } finally {
+      setIsLoadingQuestions(false);
+    }
   };
 
   if (loading && !isRefreshing) {
@@ -902,6 +1195,19 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('questions')}
+                className={`py-3 px-1 relative ${
+                  activeTab === 'questions'
+                    ? 'text-cyan-400 font-medium'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                Configuração do Quiz
+                {activeTab === 'questions' && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500"></span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -955,7 +1261,6 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <thead>
                       <tr className="border-b border-gray-700">
                         <th className="py-3 px-4 text-left text-gray-300 font-medium">Etapa</th>
-                        <th className="py-3 px-4 text-right text-gray-300 font-medium">Usuários</th>
                         <th className="py-3 px-4 text-right text-gray-300 font-medium">% do Total</th>
                         <th className="py-3 px-4 text-right text-gray-300 font-medium">Taxa de Abandono</th>
                       </tr>
@@ -1080,7 +1385,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'referrals' ? (
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                   <h2 className="text-lg font-medium text-white">Análise do Sistema de Indicações</h2>
@@ -1620,7 +1925,279 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </div>
                 </div>
               </div>
-            )}
+            ) : activeTab === 'questions' ? (
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-medium text-white">Configuração de Perguntas do Quiz</h2>
+                  <button
+                    onClick={handleAddQuestion}
+                    className="px-4 py-2 bg-indigo-700 text-indigo-100 rounded-lg hover:bg-indigo-600 transition-colors flex items-center"
+                    disabled={isLoadingQuestions}
+                  >
+                    Nova Pergunta
+                  </button>
+                </div>
+
+                {/* Formulário de edição/criação de pergunta */}
+                {showQuestionForm && editingQuestion && (
+                  <div className="mb-6 bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg">
+                    <h3 className="text-lg font-medium text-white mb-4">
+                      {editingQuestion.id ? 'Editar Pergunta' : 'Nova Pergunta'}
+                    </h3>
+                    
+                    <form onSubmit={handleSubmitQuestion}>
+                      <div className="mb-4">
+                        <label htmlFor="question" className="block text-sm font-medium text-gray-300 mb-1">
+                          Pergunta
+                        </label>
+                        <textarea
+                          id="question"
+                          name="question"
+                          value={editingQuestion.question}
+                          onChange={handleQuestionChange}
+                          required
+                          rows={3}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Opções de Resposta
+                        </label>
+                        {editingQuestion.options.map((option, index) => (
+                          <div key={index} className="flex items-center mb-2">
+                            <input
+                              type="radio"
+                              name="correct_answer"
+                              value={index}
+                              checked={editingQuestion.correct_answer === index}
+                              onChange={handleQuestionChange}
+                              className="mr-2 accent-cyan-500"
+                            />
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => handleOptionChange(index, e.target.value)}
+                              required
+                              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                              placeholder={`Opção ${index + 1}`}
+                            />
+                            {editingQuestion.options.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOption(index)}
+                                className="ml-2 text-rose-400 hover:text-rose-300 transition-colors"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        
+                        <button
+                          type="button"
+                          onClick={handleAddOption}
+                          className="mt-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          + Adicionar opção
+                        </button>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label htmlFor="explanation" className="block text-sm font-medium text-gray-300 mb-1">
+                          Explicação (opcional)
+                        </label>
+                        <textarea
+                          id="explanation"
+                          name="explanation"
+                          value={editingQuestion.explanation || ''}
+                          onChange={handleQuestionChange}
+                          rows={2}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                          placeholder="Explicação da resposta correta"
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label htmlFor="order" className="block text-sm font-medium text-gray-300 mb-1">
+                          Ordem
+                        </label>
+                        <input
+                          type="number"
+                          id="order"
+                          name="question_order"
+                          value={editingQuestion.question_order}
+                          onChange={handleQuestionChange}
+                          required
+                          min="1"
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label htmlFor="difficulty" className="block text-sm font-medium text-gray-300 mb-1">
+                          Dificuldade
+                        </label>
+                        <select
+                          id="difficulty"
+                          name="difficulty"
+                          value={editingQuestion.difficulty || 'médio'}
+                          onChange={handleQuestionChange}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        >
+                          <option value="fácil">Fácil</option>
+                          <option value="médio">Médio</option>
+                          <option value="difícil">Difícil</option>
+                        </select>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label htmlFor="active" className="block text-sm font-medium text-gray-300 mb-1">
+                          Status
+                        </label>
+                        <select
+                          id="active"
+                          name="active"
+                          value={editingQuestion.active.toString()}
+                          onChange={handleQuestionChange}
+                          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        >
+                          <option value="true">Ativa</option>
+                          <option value="false">Inativa</option>
+                        </select>
+                      </div>
+                      
+                      <div className="flex justify-end space-x-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowQuestionForm(false);
+                            setEditingQuestion(null);
+                          }}
+                          className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-cyan-700 text-cyan-100 rounded-lg hover:bg-cyan-600 transition-colors"
+                          disabled={isLoadingQuestions}
+                        >
+                          {isLoadingQuestions ? 'Salvando...' : 'Salvar Pergunta'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+                
+                {/* Lista de perguntas */}
+                {isLoadingQuestions && !showQuestionForm ? (
+                  <div className="flex justify-center p-8">
+                    <div className="animate-pulse flex flex-col items-center">
+                      <div className="w-12 h-12 border-4 border-t-cyan-500 border-gray-700/30 rounded-full animate-spin mb-4"></div>
+                      <p className="text-gray-400">Carregando perguntas...</p>
+                    </div>
+                  </div>
+                ) : quizQuestions.length === 0 ? (
+                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-8 text-center">
+                    <p className="text-gray-400 mb-4">Nenhuma pergunta configurada ainda.</p>
+                    <div className="flex justify-center gap-3">
+                      <button
+                        onClick={handleAddQuestion}
+                        className="px-4 py-2 bg-indigo-700 text-indigo-100 rounded-lg hover:bg-indigo-600 transition-colors inline-flex items-center"
+                      >
+                        Criar primeira pergunta
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="space-y-4 mb-8">
+                      {quizQuestions.map((question, index) => (
+                        <div
+                          key={question.id || index}
+                          className={`bg-gray-800/80 backdrop-blur-sm border ${
+                            question.active ? 'border-gray-700/50' : 'border-gray-700/30'
+                          } rounded-xl p-5 shadow-lg hover:shadow-xl transition-all ${
+                            !question.active && 'opacity-60'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center">
+                              <div className="bg-gray-700 rounded-full h-8 w-8 flex items-center justify-center mr-3">
+                                <span className="text-sm text-white font-medium">{question.question_order}</span>
+                              </div>
+                              <h3 className="text-white font-medium">{question.question}</h3>
+                            </div>
+                            <div className="flex items-center">
+                              <button
+                                onClick={() => handleEditQuestion(question)}
+                                className="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors mr-2"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => question.id && deleteQuestion(question.id)}
+                                className="px-3 py-1 bg-rose-700/70 text-rose-100 rounded-lg hover:bg-rose-600 transition-colors"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4 pl-11">
+                            <p className="text-sm text-gray-400 mb-2">Opções:</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {question.options.map((option, optIndex) => (
+                                <div
+                                  key={optIndex}
+                                  className={`text-sm p-2 rounded-lg ${
+                                    optIndex === question.correct_answer
+                                      ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-700/30'
+                                      : 'bg-gray-700/50 text-gray-300'
+                                  }`}
+                                >
+                                  {optIndex === question.correct_answer && (
+                                    <span className="inline-block mr-1 text-xs">✓</span>
+                                  )}
+                                  {option}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {question.explanation && (
+                              <div className="mt-3 p-3 bg-gray-700/30 border border-gray-700/50 rounded-lg">
+                                <p className="text-xs text-gray-400 mb-1">Explicação:</p>
+                                <p className="text-sm text-gray-300">{question.explanation}</p>
+                              </div>
+                            )}
+                            
+                            <div className="mt-3 flex gap-2">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                question.active
+                                  ? 'bg-cyan-900/20 text-cyan-400 border border-cyan-700/30'
+                                  : 'bg-gray-700/30 text-gray-400 border border-gray-600/30'
+                              }`}>
+                                {question.active ? 'Ativa' : 'Inativa'}
+                              </span>
+                              
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                question.difficulty === 'fácil' ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-700/30' :
+                                question.difficulty === 'difícil' ? 'bg-rose-900/20 text-rose-400 border border-rose-700/30' :
+                                'bg-amber-900/20 text-amber-400 border border-amber-700/30'
+                              }`}>
+                                {question.difficulty || 'Médio'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
