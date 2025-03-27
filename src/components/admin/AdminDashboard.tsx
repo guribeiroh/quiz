@@ -78,7 +78,7 @@ interface QuizResult {
 }
 
 // Opções predefinidas de filtro de data
-const DATE_PRESETS: DateRange[] = [
+const getDatePresets = (): DateRange[] => [
   {
     label: 'Hoje',
     startDate: new Date().toISOString().split('T')[0],
@@ -133,15 +133,16 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('funnel');
   
   // Estados para o filtro de data
-  const [dateFilter, setDateFilter] = useState<DateRange>({
-    label: 'Últimos 30 dias',
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+  const [dateFilter, setDateFilter] = useState<DateRange>(() => {
+    // Inicializar com o preset de últimos 30 dias
+    const presets = getDatePresets();
+    return presets.find(preset => preset.label === 'Últimos 30 dias') || presets[2];
   });
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [customDateActive, setCustomDateActive] = useState(false);
+  const [datePresets] = useState(() => getDatePresets());
   
   // Formatador de data para exibição amigável
   const formatDateDisplay = (dateString: string): string => {
@@ -168,20 +169,21 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       // Buscar eventos com filtro de data
       let events: Array<{ event_name: string; user_count: number }> = [];
       try {
-        // Consulta para obter eventos e filtrar pelo lado do cliente
-        const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
-        const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
+        // Garantir que as datas estejam no formato UTC para consistência
+        const startDate = new Date(`${dateFilter.startDate}T00:00:00.000Z`);
+        const endDate = new Date(`${dateFilter.endDate}T23:59:59.999Z`);
         
         console.log('Consultando eventos no período:', {
           startDateFormatted: startDate.toISOString(),
           endDateFormatted: endDate.toISOString()
         });
         
-        // Buscar todos os eventos - sem filtro no Supabase para garantir que recebemos dados
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: any = await supabase
+        // Buscar eventos com filtro de data no lado do servidor
+        const result = await supabase
           .from('user_events')
-          .select('*');
+          .select('*')
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
         
         // Verificar o objeto de resposta completo
         console.log('Resposta completa do Supabase:', result);
@@ -194,33 +196,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           console.error('Erro ao consultar eventos:', error);
         } else if (eventsData) {
           console.log('Total de eventos recebidos do Supabase:', eventsData.length);
-          console.log('Amostra dos eventos recebidos (primeiros 5):', eventsData.slice(0, 5));
           
-          // Verificar estrutura individual do primeiro registro (se existir)
-          if (eventsData.length > 0) {
-            console.log('Estrutura do primeiro evento:', Object.keys(eventsData[0]));
-            console.log('Primeiro evento completo:', eventsData[0]);
-          } else {
-            console.warn('Nenhum evento encontrado na tabela user_events');
-            console.warn('Verificando se a tabela existe ou está vazia');
-          }
-          
-          // Filtrar por data manualmente
-          const filteredEvents = eventsData.filter((event: EventData) => {
-            if (!event.created_at) {
-              console.log('Evento sem data:', event);
-              return false;
-            }
-            const eventDate = new Date(event.created_at);
-            return eventDate >= startDate && eventDate <= endDate;
-          });
-          
-          console.log('Eventos após filtro de data:', filteredEvents.length);
-          
-          // Processar manualmente para contar usuários únicos por tipo de etapa
+          // Processar para contar usuários únicos por tipo de etapa
           const uniqueUsersByStep: Record<string, Set<string>> = {};
           
-          filteredEvents.forEach((event: EventData) => {
+          eventsData.forEach((event: EventData) => {
             const step = event.step;
             const userId = event.user_id || event.session_id;
             
@@ -248,97 +228,96 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           }));
           
           console.log('Eventos agrupados por step (usuários únicos):', events);
+          
+          // Usar dados dos eventos recém-obtidos, não do estado anterior
+          // Transformar eventos brutos em dados do funil
+          const welcomeCount = events.find(e => e.event_name === 'Tela de Boas-vindas')?.user_count || 0;
+          const questionsCount = events.find(e => e.event_name === 'Respondendo Perguntas')?.user_count || 0;
+          const captureCount = events.find(e => e.event_name === 'Captura de Dados')?.user_count || 0;
+          
+          // Calcular taxas de retenção e abandono
+          const funnelSteps: FunnelData[] = [
+            {
+              stepName: 'Tela Inicial',
+              totalUsers: welcomeCount,
+              retentionRate: 100,
+              dropoffRate: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
+            },
+            {
+              stepName: 'Perguntas',
+              totalUsers: questionsCount,
+              retentionRate: welcomeCount > 0 ? (questionsCount / welcomeCount * 100) : 0,
+              dropoffRate: questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0
+            },
+            {
+              stepName: 'Captura de Dados',
+              totalUsers: captureCount,
+              retentionRate: questionsCount > 0 ? (captureCount / questionsCount * 100) : 0,
+              dropoffRate: 0
+            }
+          ];
+
+          setFunnelData(funnelSteps);
+          
+          // Processar dados detalhados do funil
+          // Encontrar eventos específicos de perguntas (ex: "Pergunta 1", "Pergunta 2", etc)
+          const questionEvents = events.filter(e => e.event_name.includes('Pergunta') || e.event_name.includes('pergunta'));
+          console.log('Eventos de perguntas encontrados:', questionEvents);
+          
+          // Criar array de passos detalhados
+          const detailedSteps: DetailedFunnelData[] = [
+            {
+              step: 'Tela de Boas-vindas',
+              totalUsers: welcomeCount,
+              percentage: 100,
+              dropoff: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
+            }
+          ];
+          
+          // Adicionar cada pergunta como um passo
+          for (let i = 1; i <= 10; i++) {
+            const questionEvent = events.find(e => 
+              e.event_name.includes(`Pergunta ${i}`) || 
+              e.event_name.includes(`pergunta ${i}`) ||
+              e.event_name.includes(`Questão ${i}`) ||
+              e.event_name.includes(`questão ${i}`)
+            );
+            
+            const questionCount = questionEvent?.user_count || 0;
+            const prevCount = i === 1 ? welcomeCount : (detailedSteps[i]?.totalUsers || welcomeCount);
+            
+            detailedSteps.push({
+              step: `Pergunta ${i}`,
+              questionNumber: i,
+              totalUsers: questionCount,
+              percentage: welcomeCount > 0 ? (questionCount / welcomeCount * 100) : 0,
+              dropoff: prevCount > 0 ? ((prevCount - questionCount) / prevCount * 100) : 0
+            });
+          }
+          
+          // Adicionar etapas finais
+          detailedSteps.push({
+            step: 'Captura de Dados',
+            totalUsers: captureCount,
+            percentage: welcomeCount > 0 ? (captureCount / welcomeCount * 100) : 0,
+            dropoff: questionEvents.length > 0 ? 
+              ((detailedSteps[detailedSteps.length - 1].totalUsers - captureCount) / detailedSteps[detailedSteps.length - 1].totalUsers * 100) : 
+              (questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0)
+          });
+          
+          setDetailedFunnelData(detailedSteps);
+          
+          // Atualizar o estado eventData APÓS processar todos os cálculos
+          setEventData(events);
         }
       } catch (error) {
         console.error('Erro ao consultar eventos:', error);
+      } finally {
+        setLoading(false);
+        setIsRefreshing(false);
       }
-
-      // Usar dados reais dos eventos
-      setEventData(events);
-
-      console.log('Dados de eventos usados:', events);
-
-      // Transformar eventos brutos em dados do funil
-      const welcomeCount = eventData.find(e => e.event_name === 'Tela de Boas-vindas')?.user_count || 0;
-      const questionsCount = eventData.find(e => e.event_name === 'Respondendo Perguntas')?.user_count || 0;
-      const captureCount = eventData.find(e => e.event_name === 'Captura de Dados')?.user_count || 0;
-      // Variável não utilizada desde que modificamos o funil para terminar na Captura de Dados
-      // const resultsCount = eventData.find(e => e.event_name === 'Resultados')?.user_count || 0;
-
-      // Calcular taxas de retenção e abandono
-      const funnelSteps: FunnelData[] = [
-        {
-          stepName: 'Tela Inicial',
-          totalUsers: welcomeCount,
-          retentionRate: 100,
-          dropoffRate: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
-        },
-        {
-          stepName: 'Perguntas',
-          totalUsers: questionsCount,
-          retentionRate: welcomeCount > 0 ? (questionsCount / welcomeCount * 100) : 0,
-          dropoffRate: questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0
-        },
-        {
-          stepName: 'Captura de Dados',
-          totalUsers: captureCount,
-          retentionRate: questionsCount > 0 ? (captureCount / questionsCount * 100) : 0,
-          dropoffRate: 0
-        }
-      ];
-
-      setFunnelData(funnelSteps);
-      
-      // Processar dados detalhados do funil
-      // Encontrar eventos específicos de perguntas (ex: "Pergunta 1", "Pergunta 2", etc)
-      const questionEvents = eventData.filter(e => e.event_name.includes('Pergunta') || e.event_name.includes('pergunta'));
-      console.log('Eventos de perguntas encontrados:', questionEvents);
-      
-      // Criar array de passos detalhados
-      const detailedSteps: DetailedFunnelData[] = [
-        {
-          step: 'Tela de Boas-vindas',
-          totalUsers: welcomeCount,
-          percentage: 100,
-          dropoff: welcomeCount > 0 ? ((welcomeCount - questionsCount) / welcomeCount * 100) : 0
-        }
-      ];
-      
-      // Adicionar cada pergunta como um passo
-      for (let i = 1; i <= 10; i++) {
-        const questionEvent = eventData.find(e => 
-          e.event_name.includes(`Pergunta ${i}`) || 
-          e.event_name.includes(`pergunta ${i}`) ||
-          e.event_name.includes(`Questão ${i}`) ||
-          e.event_name.includes(`questão ${i}`)
-        );
-        
-        const questionCount = questionEvent?.user_count || 0;
-        const prevCount = i === 1 ? welcomeCount : (detailedSteps[i]?.totalUsers || welcomeCount);
-        
-        detailedSteps.push({
-          step: `Pergunta ${i}`,
-          questionNumber: i,
-          totalUsers: questionCount,
-          percentage: welcomeCount > 0 ? (questionCount / welcomeCount * 100) : 0,
-          dropoff: prevCount > 0 ? ((prevCount - questionCount) / prevCount * 100) : 0
-        });
-      }
-      
-      // Adicionar etapas finais
-      detailedSteps.push({
-        step: 'Captura de Dados',
-        totalUsers: captureCount,
-        percentage: welcomeCount > 0 ? (captureCount / welcomeCount * 100) : 0,
-        dropoff: questionEvents.length > 0 ? 
-          ((detailedSteps[detailedSteps.length - 1].totalUsers - captureCount) / detailedSteps[detailedSteps.length - 1].totalUsers * 100) : 
-          (questionsCount > 0 ? ((questionsCount - captureCount) / questionsCount * 100) : 0)
-      });
-      
-      setDetailedFunnelData(detailedSteps);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-    } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
@@ -347,17 +326,26 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // Carrega os dados de indicações
   const fetchReferralData = useCallback(async () => {
     try {
+      setIsRefreshing(true);
       const supabase = getSupabaseClient();
       
-      // Converter datas para o formato correto
-      const startDate = new Date(dateFilter.startDate + 'T00:00:00.000Z');
-      const endDate = new Date(dateFilter.endDate + 'T23:59:59.999Z');
+      // Garantir que as datas estejam no formato UTC para consistência
+      const startDate = new Date(`${dateFilter.startDate}T00:00:00.000Z`);
+      const endDate = new Date(`${dateFilter.endDate}T23:59:59.999Z`);
       
-      // Buscar todos os resultados do quiz com dados de indicação
+      console.log('Consultando quiz_results no período:', {
+        startDateFormatted: startDate.toISOString(),
+        endDateFormatted: endDate.toISOString(),
+        label: dateFilter.label
+      });
+      
+      // Buscar resultados do quiz com filtro de data no lado do servidor
       const result = await supabase
         .from('quiz_results')
         .select('*')
-        .limit(1000); // Limitando a 1000 resultados para evitar sobrecarga
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+        .limit(1000);
 
       if (result.error) {
         console.error('Erro ao buscar dados de indicações:', result.error);
@@ -365,19 +353,14 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       }
 
       const quizResults = (result.data || []) as QuizResult[];
-
-      // Filtrar por data no lado do cliente
-      const filteredResults = quizResults.filter(result => {
-        const resultDate = new Date(result.created_at);
-        return resultDate >= startDate && resultDate <= endDate;
-      });
+      console.log(`Encontrados ${quizResults.length} resultados de quiz no período selecionado`);
       
       // Processar dados para análise
       const referrers = new Map();
       const chains = new Map();
       const timeAnalysis = new Map();
       
-      filteredResults?.forEach(result => {
+      quizResults?.forEach(result => {
         // Contar indicações por usuário
         if (result.referral_code) {
           const referrer = result.referred_by;
@@ -458,20 +441,58 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       
     } catch (error) {
       console.error('Erro ao processar dados de indicações:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   }, [dateFilter]);
 
-  // Atualizar dados quando o filtro de data mudar
-  useEffect(() => {
+  // Aplica o filtro e refaz todas as consultas
+  const applyDateFilter = useCallback(() => {
+    console.log('Aplicando filtro com datas:', {
+      startDate: dateFilter.startDate,
+      endDate: dateFilter.endDate,
+      label: dateFilter.label || 'Sem rótulo'
+    });
+    
+    // Resetar estados para evitar dados inconsistentes durante a atualização
+    setFunnelData([]);
+    setDetailedFunnelData([]);
+    setEventData([]);
+    
+    // Iniciar carregamento de dados
     fetchFunnelData();
     fetchReferralData();
-  }, [fetchFunnelData, fetchReferralData]);
+  }, [fetchFunnelData, fetchReferralData, dateFilter]);
+
+  // Atualizar dados quando o componente montar
+  useEffect(() => {
+    applyDateFilter();
+  }, [applyDateFilter]);
 
   // Manipular seleção de preset de data
   const handleDatePresetSelect = (preset: DateRange) => {
+    // Indicar carregamento
+    setIsRefreshing(true);
+    
+    // Aplicar preset 
     setDateFilter(preset);
     setShowPresets(false);
     setCustomDateActive(false);
+    
+    // Fechar o painel de datas imediatamente
+    setShowDateFilter(false);
+    
+    // Aplicar o filtro imediatamente
+    console.log('Aplicando preset de data:', preset.label);
+    
+    // Resetar estados para evitar dados inconsistentes
+    setFunnelData([]);
+    setDetailedFunnelData([]);
+    setEventData([]);
+    
+    // Executar as consultas
+    fetchFunnelData();
+    fetchReferralData();
   };
 
   // Manipular alteração de datas personalizadas
@@ -485,15 +506,47 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     setCustomDateActive(true);
   };
 
+  // Validar e aplicar as datas personalizadas
+  const handleApplyDateFilter = () => {
+    // Verificar se a data inicial é anterior à data final
+    const startDate = new Date(dateFilter.startDate);
+    const endDate = new Date(dateFilter.endDate);
+    
+    if (startDate > endDate) {
+      alert('A data inicial deve ser anterior à data final');
+      return;
+    }
+    
+    // Adicionar registro de debug
+    console.log('Aplicando filtro de datas:', {
+      startDate: dateFilter.startDate,
+      endDate: dateFilter.endDate,
+      label: dateFilter.label
+    });
+    
+    // Aplicar o filtro e fechar o painel
+    applyDateFilter();
+    setShowDateFilter(false);
+  };
+
   // Manipular atualização manual dos dados
   const handleRefresh = () => {
-    fetchFunnelData();
+    applyDateFilter();
   };
   
   // Abrir o painel de datas personalizadas
   const handleCustomDateClick = () => {
     setCustomDateActive(true);
     setShowPresets(false);
+  };
+
+  // CORREÇÃO: Atualizei os presets de data para serem gerados em tempo real a cada clique
+  const handleShowPresets = () => {
+    // Atualiza os presets de data toda vez que o menu é aberto
+    // Gerar presets atualizados
+    const updatedPresets = getDatePresets();
+    // Para atualizar os presets, precisaríamos definir um novo estado aqui
+    setShowPresets(!showPresets);
   };
 
   if (loading && !isRefreshing) {
@@ -532,7 +585,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                     <h3 className="text-white font-medium">Período</h3>
                     <div className="relative">
                       <button 
-                        onClick={() => setShowPresets(!showPresets)}
+                        onClick={() => handleShowPresets()}
                         className="text-cyan-400 text-sm flex items-center hover:text-cyan-300"
                       >
                         Predefinidos <FiChevronDown className={`ml-1 transition-transform ${showPresets ? 'rotate-180' : ''}`} />
@@ -540,7 +593,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       
                       {showPresets && (
                         <div className="absolute right-0 mt-2 w-56 bg-gray-900 rounded-lg shadow-lg z-20 border border-gray-700 py-1 animate-fadeIn">
-                          {DATE_PRESETS.map((preset, idx) => (
+                          {getDatePresets().map((preset, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleDatePresetSelect(preset)}
@@ -571,6 +624,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         value={dateFilter.startDate}
                         onChange={handleDateFilterChange}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        max={dateFilter.endDate}
                       />
                     </div>
                     <div>
@@ -582,6 +636,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         value={dateFilter.endDate}
                         onChange={handleDateFilterChange}
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                        min={dateFilter.startDate}
                       />
                     </div>
                   </div>
@@ -591,7 +646,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       {formatDateDisplay(dateFilter.startDate)} até {formatDateDisplay(dateFilter.endDate)}
                     </span>
                     <button
-                      onClick={() => setShowDateFilter(false)}
+                      onClick={handleApplyDateFilter}
                       className="text-sm px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-500 transition-colors"
                     >
                       Aplicar
@@ -627,12 +682,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <FiUsers className="text-2xl text-cyan-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Total de Usuários</p>
+                <p className="text-gray-400 text-sm">Visitantes Únicos</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData[0]?.totalUsers.toLocaleString('pt-BR') || 0}
                 </h3>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">Total de pessoas que acessaram a tela inicial</p>
           </div>
           
           <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
@@ -641,7 +697,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <FiBarChart2 className="text-2xl text-emerald-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Taxa de Conclusão</p>
+                <p className="text-gray-400 text-sm">Conversão Completa</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData.length && funnelData[0].totalUsers > 0
                     ? `${((funnelData[2]?.totalUsers / funnelData[0]?.totalUsers) * 100).toFixed(2)}%`
@@ -649,6 +705,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 </h3>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">Visitantes que concluíram todo o processo</p>
           </div>
           
           <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
@@ -657,12 +714,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <FiTrendingUp className="text-2xl text-amber-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Perguntas Respondidas</p>
+                <p className="text-gray-400 text-sm">Engajamento no Quiz</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData[1]?.totalUsers.toLocaleString('pt-BR') || 0}
                 </h3>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">Usuários que iniciaram as perguntas</p>
           </div>
           
           <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all hover:bg-gray-800/95">
@@ -671,12 +729,13 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <FiPieChart className="text-2xl text-fuchsia-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Dados Capturados</p>
+                <p className="text-gray-400 text-sm">Leads Gerados</p>
                 <h3 className="text-white text-2xl font-semibold">
                   {funnelData[2]?.totalUsers.toLocaleString('pt-BR') || 0}
                 </h3>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">Contatos capturados para seguimento</p>
           </div>
         </div>
 
