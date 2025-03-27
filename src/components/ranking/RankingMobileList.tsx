@@ -28,6 +28,29 @@ const podiumAnimations = {
   }
 };
 
+// Função para formatar nomes abreviando os sobrenomes do meio
+const formatName = (fullName: string): string => {
+  const nameParts = fullName.trim().split(' ');
+  
+  // Se tiver apenas um ou dois nomes, retorna o nome completo
+  if (nameParts.length <= 2) {
+    return fullName;
+  }
+  
+  // Primeiro nome completo
+  const firstName = nameParts[0];
+  
+  // Último sobrenome completo
+  const lastName = nameParts[nameParts.length - 1];
+  
+  // Nomes do meio abreviados
+  const middleNames = nameParts.slice(1, nameParts.length - 1).map(name => 
+    name.charAt(0).toUpperCase() + '.'
+  ).join(' ');
+  
+  return `${firstName} ${middleNames} ${lastName}`;
+};
+
 export function RankingMobileList({ 
   ranking, 
   expandedEntry, 
@@ -36,6 +59,18 @@ export function RankingMobileList({
 }: RankingMobileListProps) {
   return (
     <div className="sm:hidden">
+      {/* Legendas para os ícones */}
+      <div className="flex items-center justify-end gap-2 mb-2 px-2">
+        <div className="flex items-center bg-gray-800/60 px-2 py-1 rounded-full">
+          <FaClock className="text-blue-400 mr-1 text-xs" />
+          <span className="text-xs text-gray-300">Tempo de resposta</span>
+        </div>
+        <div className="flex items-center bg-gray-800/60 px-2 py-1 rounded-full">
+          <FaStar className="text-yellow-400 mr-1 text-xs" />
+          <span className="text-xs text-gray-300">Pontos por indicação</span>
+        </div>
+      </div>
+      
       <div className="flex items-center justify-between px-2 py-3 bg-gray-800 border-b border-gray-700 mb-2 rounded-t-lg">
         <div className="text-xs font-medium text-gray-400 uppercase">Posição</div>
         <div className="text-xs font-medium text-gray-400 uppercase">Nome</div>
@@ -94,8 +129,22 @@ export function RankingMobileList({
                 </div>
               )}
             </div>
-            <div className="flex-1 truncate ml-2 text-sm text-white">
-              {entry.user_name}
+            <div className="flex-1 ml-2">
+              <div className="text-sm text-white truncate">
+                {formatName(entry.user_name)}
+              </div>
+              <div className="flex items-center mt-1 space-x-2">
+                <div className="flex items-center text-xs text-gray-400">
+                  <FaClock className="text-blue-400 mr-1 text-[10px]" />
+                  <span>{formatTime(entry.total_time_spent)}</span>
+                </div>
+                {entry.referral_bonus_points > 0 && (
+                  <div className="flex items-center text-xs text-yellow-400">
+                    <FaStar className="mr-1 text-[10px]" />
+                    <span>+{entry.referral_bonus_points}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="text-right">
               <span className={`font-semibold text-sm ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-amber-600' : 'text-emerald-500'}`}>

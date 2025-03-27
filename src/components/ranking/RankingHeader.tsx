@@ -10,6 +10,9 @@ export function RankingHeader() {
       </div>
       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 md:mb-3 text-shadow">Ranking de Anatomia</h2>
       <p className="text-sm sm:text-base md:text-xl text-emerald-100">Veja como você se compara com outros estudantes!</p>
+      <div className="mt-2 px-3 py-1 bg-emerald-900/40 rounded-full inline-block">
+        <p className="text-xs sm:text-sm text-emerald-100 font-medium">Exibindo os <span className="text-yellow-300 font-bold">20 primeiros</span> colocados</p>
+      </div>
     </div>
   );
 } 

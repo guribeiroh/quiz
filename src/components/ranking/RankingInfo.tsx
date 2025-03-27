@@ -40,6 +40,10 @@ export function RankingInfo() {
             <span className="text-emerald-400 mr-1 mt-0.5">•</span>
             <span>Desempate: em caso de pontuação igual, o menor tempo de conclusão determina a melhor posição</span>
           </li>
+          <li className="flex items-start">
+            <span className="text-emerald-400 mr-1 mt-0.5">•</span>
+            <span>Exibição: o ranking mostra apenas os <strong className="text-yellow-400">20 primeiros</strong> colocados com melhor desempenho</span>
+          </li>
         </ul>
         <div className="bg-gray-800 p-2 sm:p-3 rounded-lg border border-gray-700 text-center transition-all hover:border-emerald-500/40">
           <p className="text-xs sm:text-sm text-emerald-300 font-medium">

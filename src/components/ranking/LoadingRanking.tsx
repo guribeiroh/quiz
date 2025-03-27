@@ -14,6 +14,7 @@ export function LoadingRanking() {
         <FaSpinner />
       </motion.div>
       <p className="text-gray-300">Carregando ranking...</p>
+      <p className="text-gray-400 text-xs mt-2">Exibindo os 20 primeiros colocados</p>
     </div>
   );
 } 
